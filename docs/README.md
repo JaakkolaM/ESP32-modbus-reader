@@ -1,35 +1,51 @@
-# ESP32-C3 WiFi Credentials Manager
+# ESP32-C3 Modbus RTU Gateway
 
-A complete WiFi configuration solution for ESP32-C3 microcontrollers with a modern web interface. Automatically creates an Access Point when no WiFi credentials are saved, allowing easy configuration through a styled web page.
+A complete Modbus RTU gateway for ESP32-C3 microcontrollers with WiFi connectivity and modern web interface. Automatically creates an Access Point when no WiFi credentials are saved, allows easy configuration of WiFi and Modbus devices, and provides real-time monitoring of HVAC systems like Enervent Pingvin and Kotilämpö.
 
 ![ESP32-C3](https://img.shields.io/badge/ESP32--C3-RISC--V-blue)
 ![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v5.1.6-orange)
+![Modbus](https://img.shields.io/badge/Modbus-RTU-green)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## Features
 
 ### Core Functionality
 - ✅ **Automatic AP Mode** - Creates access point when no WiFi credentials saved
-- ✅ **Web Configuration Interface** - Modern, responsive web page for WiFi setup
-- ✅ **Credential Persistence** - Stores WiFi credentials in flash memory (NVS)
-- ✅ **Auto-Reconnect** - Automatically connects to saved network on startup
-- ✅ **Status Monitoring** - Real-time connection status and network information
-- ✅ **Reconfiguration** - Easy credential clearing and reconfiguration
+- ✅ **Modbus RTU Master** - Full Modbus RTU implementation over UART/RS485
+- ✅ **Multi-Device Support** - Configure and monitor up to 4 Modbus devices
+- ✅ **Web Configuration Interface** - Modern, responsive web page for setup
+- ✅ **Real-Time Dashboard** - Live display of register values with auto-refresh
+- ✅ **Credential Persistence** - Stores WiFi and device configs in flash memory (NVS)
+- ✅ **Auto-Reconnect** - Automatically connects to WiFi and Modbus devices
+- ✅ **Status Monitoring** - Real-time connection status and device health
+- ✅ **Reconfiguration** - Easy credential clearing and device management
+
+### Modbus Features
+- 📡 **Modbus RTU Protocol** - Full master implementation
+- 🏭 **HVAC Device Support** - Pre-configured for Enervent Pingvin and Kotilämpö
+- 📊 **Register Read/Write** - Support for holding, input, and coil registers
+- 🔄 **Automatic Polling** - Configurable polling intervals for each device
+- 📈 **Data Caching** - Efficient register value caching
+- 🎯 **Auto-Discovery** - Scan and detect connected Modbus devices
+- ⚙️ **Flexible Configuration** - Customizable register mappings and scaling
 
 ### Web Interface
 - 🎨 **Styled CSS** - Modern, card-based layout with smooth animations
 - 📱 **Mobile-Friendly** - Responsive design works on phones and tablets
-- 🎯 **User-Friendly** - Simple form with SSID and password fields
-- 💚 **Status Indicators** - Visual connection state (green/red indicators)
-- 🔍 **Network Info** - Display IP, mode, and connected SSID
-- 🔄 **Real-time Updates** - AJAX-powered status refreshes
+- 🎯 **User-Friendly** - Simple forms for WiFi and device configuration
+- 💚 **Status Indicators** - Visual connection states (green/red indicators)
+- 🔍 **Device Info** - Display register values with units and descriptions
+- 📊 **Live Dashboard** - Real-time data refresh with configurable intervals
+- 🎛️ **Control Panel** - Write to writable registers from web interface
 
 ### Technical Features
 - ⚡ **ESP-IDF v5.1.6** - Latest Espressif IoT Development Framework
 - 🎯 **ESP32-C3 Optimized** - Specifically designed for RISC-V based ESP32-C3
-- 💾 **NVS Storage** - Reliable flash storage for credentials
+- 💾 **NVS Storage** - Reliable flash storage for all configurations
 - 🌐 **HTTP Server** - Built-in web server on port 80
+- 🔧 **REST API** - JSON API for programmatic access
 - 📡 **Dual WiFi Mode** - AP mode for setup, Station mode for normal operation
+- 🔄 **FreeRTOS Tasks** - Efficient multitasking for WiFi, Modbus, and web server
 - 🔧 **Configurable** - Easy customization via source code
 
 ## Hardware Requirements
@@ -42,12 +58,23 @@ A complete WiFi configuration solution for ESP32-C3 microcontrollers with a mode
   - 4 MB Flash (or more)
 
 - **USB Cable**: USB-C for power and programming
+
+- **RS485 Adapter**: For Modbus RTU communication
+  - UART to RS485 converter (e.g., MAX485)
+  - Default pins: TX=GPIO4, RX=GPIO5 (configurable)
+
+- **HVAC Devices**: (optional)
+  - Enervent Pingvin ventilation system
+  - Kotilämpö heating system
+  - Any standard Modbus RTU slave device
+
 - **Computer**: Windows, Linux, or macOS with development tools
 
 ### Supported Devices
 - Seeed Studio ESP32-C3 series
 - Espressif ESP32-C3-DevKitM-1
 - Any ESP32-C3 based development board
+- Any Modbus RTU compliant device
 
 ## Software Requirements
 
@@ -67,65 +94,61 @@ A complete WiFi configuration solution for ESP32-C3 microcontrollers with a mode
   - esptool flash tool
   - ESP-IDF build system
 
-### Optional
-- Arduino IDE with ESP32 Arduino core (already installed)
-  - Can be used for alternative Arduino-based implementation
-  - esptool available for flashing
-
 ## Installation
 
 ### Step 1: Install ESP-IDF
 
 1. **Clone ESP-IDF Repository**
-   ```bash
-   cd C:\Users\jaakk\esp
-   git clone --recursive https://github.com/espressif/esp-idf.git esp-idf-v5.1.6
-   cd esp-idf-v5.1.6
-   git checkout v5.1.6
-   git submodule update --init --recursive
-   ```
+    ```bash
+    cd C:\Users\jaakk\esp
+    git clone --recursive https://github.com/espressif/esp-idf.git esp-idf-v5.1.6
+    cd esp-idf-v5.1.6
+    git checkout v5.1.6
+    git submodule update --init --recursive
+    ```
 
 2. **Install ESP-IDF Tools**
-   ```bash
-   install.bat esp32c3
-   ```
-   This downloads compiler, flash tools, and utilities (~2GB, 10-20 minutes)
+    ```bash
+    install.bat esp32c3
+    ```
+    This downloads compiler, flash tools, and utilities (~2GB, 10-20 minutes)
 
 3. **Set Environment Variables**
-   
-   **Temporary (current session):**
-   ```bash
-   export.bat
-   ```
 
-   **Permanent (add to PATH):**
-   Add to your system PATH:
-   ```
-   C:\Users\jaakk\esp\esp-idf-v5.1.6\esp-idf\tools
-   ```
+    **Temporary (current session):**
+    ```bash
+    export.bat
+    ```
+
+    **Permanent (add to PATH):**
+    Add to your system PATH:
+    ```
+    C:\Users\jaakk\esp\esp-idf-v5.1.6\esp-idf\tools
+    ```
 
 ### Step 2: Clone This Project
 
 ```bash
 cd "C:\Users\jaakk\DIY projects\Microcontroller codes"
-git clone https://github.com/yourusername/esp32-wifi-manager.git
-cd esp32-wifi-manager
+git clone https://github.com/JaakkolaM/ESP32-modbus-reader.git
+cd ESP32-modbus-reader
 ```
 
 ### Step 3: Configure Project
 
 1. **Set Target to ESP32-C3**
-   ```bash
-   idf.py set-target esp32c3
-   ```
+    ```bash
+    idf.py set-target esp32c3
+    ```
 
 2. **Optional Configuration**
-   ```bash
-   idf.py menuconfig
-   ```
-   Navigate to:
-   - Component config → WiFi
-   - Component config → HTTP Server
+    ```bash
+    idf.py menuconfig
+    ```
+    Navigate to:
+    - Component config → WiFi
+    - Component config → HTTP Server
+    - Component config → UART Driver
 
 ### Step 4: Build Project
 
@@ -140,20 +163,32 @@ The build process compiles the firmware and creates a binary file.
 1. **Connect ESP32-C3** via USB-C cable
 
 2. **Identify COM Port**
-   - Windows: Device Manager → Ports (COM & LPT)
-   - Example: COM3, COM4, etc.
+    - Windows: Device Manager → Ports (COM & LPT)
+    - Example: COM3, COM4, etc.
 
 3. **Flash Firmware**
-   ```bash
-   idf.py -p COM3 flash monitor
-   ```
+    ```bash
+    idf.py -p COM3 flash monitor
+    ```
 
-   This flashes the firmware and opens serial monitor.
+    This flashes the firmware and opens serial monitor.
 
 4. **Monitor Only** (if already flashed)
-   ```bash
-   idf.py -p COM3 monitor
-   ```
+    ```bash
+    idf.py -p COM3 monitor
+    ```
+
+### Step 6: Connect Modbus Devices
+
+1. Connect RS485 adapter to ESP32-C3:
+   - TX pin → GPIO4 (default)
+   - RX pin → GPIO5 (default)
+   - GND → GND
+
+2. Connect RS485 to HVAC devices:
+   - A+ → A+
+   - B- → B-
+   - GND → GND (optional)
 
 ## Usage
 
@@ -184,31 +219,65 @@ The build process compiles the firmware and creates a binary file.
 - Automatically connects to your WiFi network
 - Note the IP address displayed in status
 
-#### 6. Access Web Interface (Optional)
+#### 6. Access Web Interface
 - Connect your device to your home WiFi
 - Navigate to: **`http://<device-ip-address>`**
-- View connection status, IP address, and network info
-- Reconfigure credentials if needed
+- View WiFi status, configure Modbus devices
 
-### Reconfiguration Workflow
+### Modbus Configuration
 
+#### 1. Access Modbus Configuration
+- Navigate to: **`http://<device-ip-address>/modbus.html`**
+- Click "Add Device"
+
+#### 2. Configure Device
+- Enter Device ID (e.g., 1 for Enervent Pingvin)
+- Enter Device Name (e.g., "Enervent Pingvin")
+- Enter Description
+- Set Poll Interval (default: 5000ms)
+- Configure UART settings if needed
+- Click "Save"
+
+#### 3. Add Register Mappings
+- Select device from list
+- Add register addresses (refer to device documentation in `docs/devices/`)
+- Set register type (Holding, Input, Coil)
+- Enter name, unit, scaling factor
+- Mark writable if applicable
+- Click "Save"
+
+#### 4. Test Communication
+- Click "Test Connection" on device page
+- Verify device responds
+- Check register values in dashboard
+
+#### 5. View Dashboard
+- Navigate to: **`http://<device-ip-address>/dashboard.html`**
+- View real-time register values
+- Write to writable registers using control panel
+- Monitor device status
+
+### Reconfiguration
+
+#### WiFi Credentials
 If you need to change WiFi credentials:
 
-1. **Access Web Interface**
-   - Open browser at device IP: `http://<device-ip>`
+1. Access web interface at device IP
+2. Click "Clear Credentials"
+3. Device reboots and creates AP again
+4. Follow first-time setup steps
 
-2. **Clear Credentials**
-   - Click **"Clear Credentials"** button
-   - Device reboots
+#### Modbus Configuration
+If you need to change Modbus configuration:
 
-3. **Enter AP Mode**
-   - Device creates access point again
-   - Follow first-time setup steps
+1. Access Modbus configuration page
+2. Edit device settings or register mappings
+3. Changes take effect immediately (no reboot needed)
+4. Test communication after changes
 
-### Advanced Usage
+### API Usage
 
-#### View Connection Status
-Access `/status` endpoint for JSON status:
+#### WiFi Status
 ```bash
 curl http://<device-ip>/status
 ```
@@ -224,45 +293,72 @@ Response:
 }
 ```
 
-#### Custom AP Credentials
-Modify `wifi_manager.c`:
-```c
-#define AP_SSID "MyESP32"
-#define AP_PASSWORD "mypassword123"
+#### List Modbus Devices
+```bash
+curl http://<device-ip>/api/modbus/devices
 ```
 
-#### Static IP Configuration
-Edit `wifi_manager.c` to set static IP:
-```c
-esp_netif_ip_info_t ip_info;
-IP4_ADDR(&ip_info.ip, 192, 168, 1, 100);
-IP4_ADDR(&ip_info.gw, 192, 168, 1, 1);
-IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
-esp_netif_set_ip_info(netif, &ip_info);
+Response:
+```json
+{
+  "devices": [
+    {
+      "id": 1,
+      "name": "Enervent Pingvin",
+      "enabled": true,
+      "poll_interval": 5000,
+      "status": "online"
+    }
+  ]
+}
+```
+
+#### Read Registers
+```bash
+curl http://<device-ip>/api/modbus/1/read/holding/0x100/10
+```
+
+#### Write Register
+```bash
+curl -X POST http://<device-ip>/api/modbus/1/write/holding/0x100 -d "value=20.5"
 ```
 
 ## Project Structure
 
 ```
-esp32-wifi-manager/
+ESP32-modbus-reader/
 ├── CMakeLists.txt                 # Main CMake configuration
 ├── docs/
 │   ├── PLAN.md                    # Detailed implementation plan
-│   └── README.md                  # This file
+│   ├── README.md                  # This file
+│   └── devices/                  # Device documentation
+│       ├── README.md              # Device docs template
+│       ├── enervent_pingvin.md    # Enervent Pingvin docs
+│       └── kotilampo.md          # Kotilämpö docs
 ├── main/
 │   ├── CMakeLists.txt             # Main component CMake
 │   ├── main.c                     # Application entry point
-│   ├── wifi_manager.c             # WiFi driver implementation
-│   ├── wifi_manager.h             # WiFi driver header
+│   ├── wifi_manager.c             # WiFi implementation
+│   ├── wifi_manager.h             # WiFi header
 │   ├── web_server.c               # HTTP server implementation
 │   ├── web_server.h               # HTTP server header
-│   ├── nvs_storage.c              # NVS flash storage
-│   ├── nvs_storage.h              # NVS storage header
+│   ├── nvs_storage.c              # NVS implementation
+│   ├── nvs_storage.h              # NVS header
+│   ├── modbus_manager.c           # Modbus RTU manager
+│   ├── modbus_manager.h           # Modbus manager header
+│   ├── modbus_protocol.c          # Modbus protocol stack
+│   ├── modbus_protocol.h          # Modbus protocol header
+│   ├── modbus_devices.c           # Device configuration manager
+│   ├── modbus_devices.h           # Device configuration header
 │   └── html/
-│       ├── index.html             # Web interface HTML
-│       ├── style.css              # Styled CSS
-│       └── script.js              # JavaScript logic
+│       ├── index.html             # Web UI HTML (WiFi config)
+│       ├── style.css              # Web UI CSS
+│       ├── script.js              # Web UI JavaScript
+│       ├── modbus.html            # Modbus configuration page
+│       ├── dashboard.html         # Data dashboard
+│       └── modbus.js              # Modbus UI JavaScript
 ├── sdkconfig                      # Project configuration
+├── sdkconfig.defaults             # Default configuration
 └── .gitignore                     # Git ignore rules
 ```
 
@@ -272,21 +368,31 @@ esp32-wifi-manager/
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│              ESP32-C3 WiFi Manager                    │
+│              ESP32-C3 Modbus RTU Gateway          │
 ├─────────────────────────────────────────────────────┤
-│  ┌──────────────┐    ┌──────────────┐              │
-│  │  WiFi Manager │◄──┤  NVS Storage │              │
-│  └──────┬───────┘    └──────────────┘              │
-│         │                                          │
-│         ▼                                          │
-│  ┌──────────────┐    ┌──────────────┐              │
-│  │   Web Server │◄──┤   FreeRTOS    │              │
-│  └──────┬───────┘    └──────────────┘              │
-│         │                                          │
-│         ▼                                          │
-│  ┌──────────────────────┐                          │
-│  │     WiFi Driver      │                          │
-│  └──────────────────────┘                          │
+│                                                     │
+│  ┌──────────────┐    ┌──────────────┐               │
+│  │  WiFi Manager │◄──┤  NVS Storage │               │
+│  └──────┬───────┘    └──────────────┘               │
+│         │                                           │
+│         ▼                                           │
+│  ┌──────────────┐    ┌──────────────┐               │
+│  │   Web Server │◄──┤ Modbus Data  │               │
+│  └──────┬───────┘    └──────┬───────┘               │
+│         │                   │                       │
+│         ▼                   ▼                       │
+│  ┌──────────────┐    ┌──────────────────┐          │
+│  │  FreeRTOS    │    │  Modbus Manager  │          │
+│  └──────────────┘    └────────┬─────────┘          │
+│                              │                      │
+│                              ▼                      │
+│                      ┌──────────────┐               │
+│                      │  UART Driver │               │
+│                      │  (Modbus RTU)│               │
+│                      └──────────────┘               │
+│                              │                      │
+│                              ▼                      │
+│                     RS485/UART (HVAC Devices)        │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -302,17 +408,29 @@ esp32-wifi-manager/
 - HTTP server on port 80
 - Serves static files (HTML, CSS, JS)
 - Handles form submissions
-- Provides API endpoints
+- Provides REST API for Modbus operations
 
 #### NVS Storage
-- Non-Volatile Storage for credentials
+- Non-Volatile Storage for WiFi and device configs
 - Persistent across reboots
 - Thread-safe operations
+
+#### Modbus Manager
+- Modbus RTU master implementation
+- Device configuration management
+- Register caching and polling
+- Error handling and retry logic
+
+#### Modbus Protocol
+- Full Modbus RTU protocol stack
+- CRC calculation and validation
+- Support for functions 0x01, 0x03, 0x04, 0x05, 0x06, 0x15, 0x16
 
 #### Web Interface
 - Responsive HTML/CSS/JavaScript
 - AJAX-powered status updates
-- Mobile-friendly design
+- Real-time dashboard with auto-refresh
+- Device configuration and control panels
 
 ## Development
 
@@ -340,13 +458,6 @@ idf.py menuconfig
 ```
 Navigate to: Component config → Log output → Default log verbosity → Debug
 
-### Running Tests
-
-```bash
-# Run all tests (if implemented)
-idf.py build && idf.py test
-```
-
 ### Code Style
 
 This project follows ESP-IDF coding conventions:
@@ -368,33 +479,16 @@ cd C:\Users\jaakk\esp\esp-idf-v5.1.6\esp-idf
 export.bat
 ```
 
-Or add ESP-IDF tools to your system PATH permanently.
-
-#### Build Failures
-**Problem:** Compilation errors
+#### Modbus Device Not Responding
+**Problem:** Cannot communicate with Modbus device
 
 **Solutions:**
-```bash
-# Clean and rebuild
-idf.py fullclean
-idf.py build
-
-# Check ESP-IDF version
-idf.py --version
-
-# Verify target
-idf.py show-target
-```
-
-#### Flash Failures
-**Problem:** Cannot flash to device
-
-**Solutions:**
-- Verify COM port is correct
-- Check USB drivers are installed
-- Try different USB cable
-- Press BOOT button before flashing
-- Ensure device is in bootloader mode
+- Check RS485 wiring (A+ to A+, B- to B-)
+- Verify device ID matches configuration
+- Check baudrate settings
+- Ensure proper grounding
+- Test with Modbus simulator or known working device
+- Review serial logs for error messages
 
 #### WiFi Not Connecting
 **Problem:** Device fails to connect to WiFi
@@ -406,33 +500,20 @@ idf.py show-target
 - Check router security (WPA2/WPA3)
 - Review serial logs for error messages
 
-#### Cannot Access Web Page
-**Problem:** Browser cannot load configuration page
+#### Dashboard Not Updating
+**Problem:** Register values not refreshing
 
 **Solutions:**
-- Verify device is in AP mode or connected to WiFi
-- Check IP address in serial logs
-- Try different browser
-- Clear browser cache
-- Check firewall settings
-- Try: `http://192.168.4.1` (AP mode)
-
-### Debug Mode
-
-Enable detailed logging:
-```bash
-idf.py menuconfig
-```
-Component config → Log output → Default log verbosity → Debug
-
-View serial output:
-```bash
-idf.py -p COM3 monitor
-```
+- Verify device is online in Modbus configuration
+- Check polling interval is set correctly
+- Refresh browser page
+- Check browser console for JavaScript errors
+- Review serial logs for Modbus errors
 
 ### Getting Help
 
 - Check [docs/PLAN.md](docs/PLAN.md) for detailed implementation notes
+- Check [docs/devices/](docs/devices/) for device-specific documentation
 - Review ESP-IDF documentation: https://docs.espressif.com/projects/esp-idf
 - Check ESP32-C3 datasheet for hardware details
 - Search GitHub Issues for similar problems
@@ -440,21 +521,33 @@ idf.py -p COM3 monitor
 ## Roadmap
 
 ### Version 1.0 (Current)
-- ✅ Basic WiFi manager functionality
+- ✅ WiFi manager functionality
 - ✅ Web interface with styled CSS
 - ✅ NVS credential storage
 - ✅ AP mode for configuration
 - ✅ Station mode for normal operation
+- ✅ Basic web interface
 
-### Version 1.1 (Planned)
+### Version 1.1 (In Development)
+- [ ] Modbus RTU protocol implementation
+- [ ] Modbus Manager component
+- [ ] Device configuration management
+- [ ] Register read/write functionality
+- [ ] Web dashboard for real-time data
+- [ ] REST API for Modbus operations
+- [ ] Support for Enervent Pingvin
+- [ ] Support for Kotilämpö
+
+### Version 1.2 (Planned)
+- [ ] MQTT integration
+- [ ] Historical data logging
+- [ ] Alarms and alerts
 - [ ] Captive portal support
 - [ ] WiFi network scanning
 - [ ] Multiple network profiles
-- [ ] Connection timeout configuration
 - [ ] Enhanced error handling
 
 ### Version 2.0 (Future)
-- [ ] MQTT integration
 - [ ] OTA firmware updates
 - [ ] Authentication for web interface
 - [ ] Dark mode toggle
@@ -462,62 +555,67 @@ idf.py -p COM3 monitor
 - [ ] WebSocket real-time updates
 - [ ] Static IP configuration
 - [ ] Custom DNS settings
-- [ ] Network statistics dashboard
+- [ ] Data export (CSV/JSON)
+- [ ] Trend graphs and analytics
+- [ ] Modbus TCP support
+- [ ] Custom automation scripts
+
+## Device Documentation
+
+Add your device-specific documentation to the `docs/devices/` folder:
+
+- **Enervent Pingvin**: Add register maps, communication details to `enervent_pingvin.md`
+- **Kotilämpö**: Add register maps, communication details to `kotilampo.md`
+
+See `docs/devices/README.md` for the documentation template.
 
 ## Contributing
 
 Contributions are welcome! Please follow these guidelines:
 
-1. **Fork the Repository**
-   ```bash
-   git clone https://github.com/yourusername/esp32-wifi-manager.git
-   cd esp32-wifi-manager
-   ```
+1. **Fork Repository**
+    ```bash
+    git clone https://github.com/JaakkolaM/ESP32-modbus-reader.git
+    cd ESP32-modbus-reader
+    ```
 
 2. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
 
 3. **Make Changes**
-   - Follow existing code style
-   - Add comments for complex logic
-   - Update documentation as needed
+    - Follow existing code style
+    - Add comments for complex logic
+    - Update documentation as needed
 
 4. **Test Thoroughly**
-   ```bash
-   idf.py build
-   idf.py -p COM3 flash monitor
-   ```
+    ```bash
+    idf.py build
+    idf.py -p COM3 flash monitor
+    ```
 
 5. **Commit Changes**
-   ```bash
-   git add .
-   git commit -m "Add your feature description"
-   ```
+    ```bash
+    git add .
+    git commit -m "Add your feature description"
+    ```
 
 6. **Push and Create Pull Request**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-### Code Style Guidelines
-- Follow ESP-IDF conventions
-- Use meaningful variable names
-- Add comments for complex functions
-- Keep functions focused and small
-- Handle errors gracefully
+    ```bash
+    git push origin feature/your-feature-name
+    ```
 
 ## Documentation
 
 - **[Implementation Plan](docs/PLAN.md)** - Detailed technical design and implementation notes
+- **[Device Documentation](docs/devices/)** - HVAC device register maps and specifications
 - **[ESP-IDF Documentation](https://docs.espressif.com/projects/esp-idf/en/v5.1.6/esp32c3/)** - Official ESP-IDF docs
 - **[ESP32-C3 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf)** - Hardware specifications
-- **[Seeed Studio Wiki](https://wiki.seeedstudio.com/)** - Seeed Studio documentation
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
@@ -527,9 +625,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support & Contact
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/esp32-wifi-manager/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/esp32-wifi-manager/discussions)
-- **Email**: your.email@example.com
+- **Issues**: [GitHub Issues](https://github.com/JaakkolaM/ESP32-modbus-reader/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/JaakkolaM/ESP32-modbus-reader/discussions)
 
 ## Performance
 
@@ -537,11 +634,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Free Heap: ~280KB (ESP32-C3)
 - WiFi Stack: ~40KB
 - HTTP Server: ~20KB
+- Modbus Protocol: ~15KB
+- Modbus Manager: ~10KB
+- Device Configs: ~5KB (4 devices)
+- Register Cache: ~10KB (dynamic)
 - Application: ~10KB
-- Available: ~210KB
+- Available: ~170KB
 
 ### Power Consumption
-- Active (WiFi ON): ~80mA
+- Active (WiFi ON, Modbus ON): ~100mA
+- Active (WiFi ON, Modbus IDLE): ~85mA
 - Light Sleep: ~15mA
 - Deep Sleep: ~10µA
 
@@ -550,19 +652,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - AP mode startup: 1-2 seconds
 - HTTP request: <100ms
 - Page load: <500ms
-
-## Alternative Implementations
-
-### Arduino Framework Version
-If you prefer Arduino, a simplified version can be created using:
-- ESP32 Arduino core v3.2.0
-- WiFi library
-- WebServer library
-- Preferences library (for NVS)
-
-This provides easier development but with less control and higher memory usage.
+- Modbus RTU read (single): ~50ms
+- Modbus RTU read (multiple): ~100-200ms
+- Modbus RTU write: ~50ms
+- Dashboard refresh: ~500-1000ms
 
 ## Changelog
+
+### Version 1.0.1 (2025-01-27)
+- Updated README for Modbus RTU gateway functionality
+- Added comprehensive project plan for Modbus implementation
+- Created device documentation structure
 
 ### Version 1.0.0 (2025-01-26)
 - Initial release
