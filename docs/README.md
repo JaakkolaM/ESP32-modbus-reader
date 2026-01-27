@@ -328,13 +328,24 @@ curl -X POST http://<device-ip>/api/modbus/1/write/holding/0x100 -d "value=20.5"
 ```
 ESP32-modbus-reader/
 ├── CMakeLists.txt                 # Main CMake configuration
+├── .gitignore                     # Git ignore rules
+├── build.bat                      # Build script (Windows)
+├── build.ps1                      # Build script (PowerShell)
+├── run_install.bat                # Install script
 ├── docs/
 │   ├── PLAN.md                    # Detailed implementation plan
 │   ├── README.md                  # This file
 │   └── devices/                  # Device documentation
-│       ├── README.md              # Device docs template
-│       ├── enervent_pingvin.md    # Enervent Pingvin docs
-│       └── kotilampo.md          # Kotilämpö docs
+│       ├── README.md              # Device documentation template
+│       ├── MAX485_RS485_Module.md # MAX485 TTL to RS485 module docs
+│       ├── XIAO_ESP32C3_Getting_Started.md # XIAO ESP32C3 guide
+│       ├── eairmd.md              # eAirMD device documentation
+│       ├── ewind.md               # eWind device documentation
+│       ├── eAirMD-modbus-register-list-public-clean.csv
+│       ├── eAirMD-modbus-register-list-public-clean.xlsx
+│       ├── eWind-modbus-register-list-public-clean.csv
+│       ├── eWind-modbus-register-list-public-clean.xlsx
+│       └── eWind-modbus-register-list-public-clean-enumerators.csv
 ├── main/
 │   ├── CMakeLists.txt             # Main component CMake
 │   ├── main.c                     # Application entry point
@@ -357,9 +368,10 @@ ESP32-modbus-reader/
 │       ├── modbus.html            # Modbus configuration page
 │       ├── dashboard.html         # Data dashboard
 │       └── modbus.js              # Modbus UI JavaScript
+├── build/                         # Build output directory
 ├── sdkconfig                      # Project configuration
-├── sdkconfig.defaults             # Default configuration
-└── .gitignore                     # Git ignore rules
+├── sdkconfig.old                  # Previous configuration backup
+└── sdkconfig.defaults             # Default configuration
 ```
 
 ## Architecture
