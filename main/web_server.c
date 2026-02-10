@@ -609,10 +609,47 @@ static esp_err_t api_post_write_handler(httpd_req_t *req)
             free(device_id_str);
             free(address_str);
 
-            modbus_result_t result = modbus_write_single_register(device_id, address, value);
-            
+            modbus_register_t *reg = modbus_get_register(device_id, address);
+            if (reg == NULL) {
+                httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Register not found");
+                cJSON_Delete(root);
+                return ESP_FAIL;
+            }
+
+            modbus_result_t result;
+
+            switch (reg->type) {
+                case REGISTER_TYPE_COIL:
+                    {
+                        bool coil_value = (value != 0);
+                        result = modbus_write_single_coil(device_id, address, coil_value);
+                        if (result == MODBUS_RESULT_OK) {
+                            uint16_t coil_result = coil_value ? 1 : 0;
+                            modbus_update_register_value(device_id, address, coil_result);
+                        }
+                    }
+                    break;
+
+                case REGISTER_TYPE_HOLDING:
+                    result = modbus_write_single_register(device_id, address, value);
+                    if (result == MODBUS_RESULT_OK) {
+                        modbus_update_register_value(device_id, address, value);
+                    }
+                    break;
+
+                case REGISTER_TYPE_DISCRETE:
+                case REGISTER_TYPE_INPUT:
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Cannot write to read-only register type");
+                    cJSON_Delete(root);
+                    return ESP_FAIL;
+
+                default:
+                    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Unknown register type");
+                    cJSON_Delete(root);
+                    return ESP_FAIL;
+            }
+
             if (result == MODBUS_RESULT_OK) {
-                modbus_update_register_value(device_id, address, value);
                 httpd_resp_set_type(req, "application/json");
                 httpd_resp_send(req, "{\"status\":\"ok\"}", 15);
                 cJSON_Delete(root);
@@ -633,6 +670,56 @@ static esp_err_t api_post_write_handler(httpd_req_t *req)
     if (device_id_str) free(device_id_str);
     if (address_str) free(address_str);
     return ESP_FAIL;
+}
+
+static esp_err_t api_get_logging_config_handler(httpd_req_t *req)
+{
+    bool enabled = modbus_manager_get_logging();
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddBoolToObject(root, "logging_enabled", enabled);
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+
+    free(json_str);
+    cJSON_Delete(root);
+
+    return ESP_OK;
+}
+
+static esp_err_t api_post_logging_config_handler(httpd_req_t *req)
+{
+    char buf[256];
+    int ret = httpd_req_recv(req, buf, sizeof(buf));
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive data");
+        return ESP_FAIL;
+    }
+    buf[ret] = '\0';
+
+    cJSON *root = cJSON_Parse(buf);
+    if (root == NULL) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    cJSON *enabled = cJSON_GetObjectItem(root, "logging_enabled");
+    if (!enabled || (!cJSON_IsBool(enabled) && !cJSON_IsTrue(enabled) && !cJSON_IsFalse(enabled))) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing or invalid field: logging_enabled");
+        cJSON_Delete(root);
+        return ESP_FAIL;
+    }
+
+    bool logging_state = enabled->type == cJSON_True;
+    modbus_manager_set_logging(logging_state);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, "{\"status\":\"ok\"}", 15);
+
+    cJSON_Delete(root);
+    return ESP_OK;
 }
 
 static esp_err_t root_handler(httpd_req_t *req)
@@ -733,6 +820,18 @@ static httpd_uri_t uri_handlers[] = {
         .method = HTTP_POST,
         .handler = api_post_write_handler,
         .user_ctx = NULL
+    },
+    {
+        .uri = "/api/modbus/logging-config",
+        .method = HTTP_GET,
+        .handler = api_get_logging_config_handler,
+        .user_ctx = NULL
+    },
+    {
+        .uri = "/api/modbus/logging-config",
+        .method = HTTP_POST,
+        .handler = api_post_logging_config_handler,
+        .user_ctx = NULL
     }
 };
 
@@ -740,7 +839,7 @@ esp_err_t web_server_start(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 16;
+    config.max_uri_handlers = 18;
 
     ESP_LOGI(TAG, "Starting HTTP server on port %" PRIu16, config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {

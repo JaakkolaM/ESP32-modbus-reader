@@ -1,13 +1,16 @@
 #include "modbus_manager.h"
 #include "modbus_protocol.h"
 #include "modbus_devices.h"
+#include "nvs_storage.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include <inttypes.h>
 #include <string.h>
+#include <stdio.h>
 
 static const char *TAG = "MODBUS_MANAGER";
 
@@ -18,6 +21,28 @@ static modbus_config_t modbus_config;
 static TaskHandle_t polling_task_handle = NULL;
 static volatile bool polling_active = false;
 static volatile uint32_t last_error = 0;
+static bool modbus_logging_enabled = false;
+
+static void log_hex_dump(const uint8_t *data, uint16_t len)
+{
+    if (!modbus_logging_enabled || data == NULL || len == 0) {
+        return;
+    }
+
+    char hex_str[256] = {0};
+    int pos = 0;
+    int max_bytes = (len > 64) ? 64 : len;
+
+    for (int i = 0; i < max_bytes && pos < sizeof(hex_str) - 3; i++) {
+        pos += snprintf(hex_str + pos, sizeof(hex_str) - pos, "%02X ", data[i]);
+    }
+
+    if (len > 64) {
+        snprintf(hex_str + pos, sizeof(hex_str) - pos, "...(+%d)", len - 64);
+    }
+
+    ESP_LOGI(TAG, "FRAME: %s", hex_str);
+}
 
 static void uart_init(void)
 {
@@ -71,8 +96,15 @@ static void set_receive_mode(void)
 
 static modbus_result_t send_request(uint8_t *frame, uint16_t frame_len)
 {
+    int64_t start_time = esp_timer_get_time();
+
     set_transmit_mode();
     uart_flush_input(UART_NUM);
+
+    ESP_LOGI(TAG, "SENDING: DevID=%d, FC=0x%02X, Addr=%d, Qty=%d, Bytes=%d",
+              frame[0], frame[1], (frame[2] << 8) | frame[3], (frame[4] << 8) | frame[5], frame_len);
+
+    log_hex_dump(frame, frame_len);
 
     int written = uart_write_bytes(UART_NUM, (const char *)frame, frame_len);
     if (written != frame_len) {
@@ -84,11 +116,16 @@ static modbus_result_t send_request(uint8_t *frame, uint16_t frame_len)
     uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(100));
     set_receive_mode();
 
+    int64_t tx_time = (esp_timer_get_time() - start_time) / 1000;
+    ESP_LOGI(TAG, "TX completed in %lld ms", tx_time);
+
     return MODBUS_RESULT_OK;
 }
 
 static modbus_result_t receive_response(uint8_t *frame, uint16_t *frame_len)
 {
+    int64_t start_time = esp_timer_get_time();
+
     uint8_t buf[BUF_SIZE];
     int len = uart_read_bytes(UART_NUM, buf, sizeof(buf), pdMS_TO_TICKS(modbus_config.timeout_ms));
 
@@ -102,6 +139,14 @@ static modbus_result_t receive_response(uint8_t *frame, uint16_t *frame_len)
         return MODBUS_RESULT_CRC_ERROR;
     }
 
+    ESP_LOGI(TAG, "RECEIVED: %d bytes, DevID=%d, FC=0x%02X",
+              len, buf[0], buf[1]);
+
+    log_hex_dump(buf, len);
+
+    int64_t rx_time = (esp_timer_get_time() - start_time) / 1000;
+    ESP_LOGI(TAG, "RX completed in %lld ms", rx_time);
+
     memcpy(frame, buf, len);
     *frame_len = len;
 
@@ -113,10 +158,15 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
                                                 const uint8_t *data, uint16_t data_len,
                                                 uint8_t *response_frame, uint16_t *response_len)
 {
+    int64_t transaction_start = esp_timer_get_time();
+
     uint8_t request_frame[MODBUS_MAX_FRAME_LEN];
     uint16_t request_len = 0;
     modbus_response_t response;
     modbus_result_t result = MODBUS_RESULT_OK;
+
+    ESP_LOGI(TAG, "TRANSACTION START: DevID=%d, FC=0x%02X (%s), Addr=%d, Qty=%d",
+              device_id, function, modbus_function_to_string(function), address, quantity);
 
     esp_err_t err = modbus_build_request(device_id, function, address, quantity,
                                         data, data_len, request_frame, &request_len);
@@ -128,11 +178,17 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
     for (uint8_t retry = 0; retry < modbus_config.retry_attempts; retry++) {
         result = send_request(request_frame, request_len);
         if (result != MODBUS_RESULT_OK) {
+            ESP_LOGW(TAG, "ATTEMPT %d/%d: DevID=%d, FC=0x%02X, Addr=%d, Result=%s",
+                      retry + 1, modbus_config.retry_attempts, device_id, function, address,
+                      modbus_result_to_string(result));
             continue;
         }
 
         result = receive_response(response_frame, response_len);
         if (result != MODBUS_RESULT_OK) {
+            ESP_LOGW(TAG, "ATTEMPT %d/%d: DevID=%d, FC=0x%02X, Addr=%d, Result=%s",
+                      retry + 1, modbus_config.retry_attempts, device_id, function, address,
+                      modbus_result_to_string(result));
             continue;
         }
 
@@ -140,6 +196,9 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to parse response: %s", esp_err_to_name(err));
             result = MODBUS_RESULT_INVALID_RESPONSE;
+            ESP_LOGW(TAG, "ATTEMPT %d/%d: DevID=%d, FC=0x%02X, Addr=%d, Result=%s",
+                      retry + 1, modbus_config.retry_attempts, device_id, function, address,
+                      modbus_result_to_string(result));
             continue;
         }
 
@@ -147,12 +206,25 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
             ESP_LOGE(TAG, "Modbus exception: %s", modbus_exception_to_string(response.exception_code));
             last_error = response.exception_code;
             result = MODBUS_RESULT_EXCEPTION;
+            ESP_LOGW(TAG, "ATTEMPT %d/%d: DevID=%d, FC=0x%02X, Addr=%d, Result=Exception",
+                      retry + 1, modbus_config.retry_attempts, device_id, function, address);
             break;
         }
+
+        ESP_LOGI(TAG, "ATTEMPT %d/%d: DevID=%d, FC=0x%02X, Addr=%d, Result=OK",
+                  retry + 1, modbus_config.retry_attempts, device_id, function, address);
+
+        int64_t total_time = (esp_timer_get_time() - transaction_start) / 1000;
+        ESP_LOGI(TAG, "TRANSACTION SUCCESS: DevID=%d, FC=0x%02X, Attempts=%d, Total Time=%lld ms",
+                  device_id, function, retry + 1, total_time);
 
         last_error = 0;
         return MODBUS_RESULT_OK;
     }
+
+    int64_t total_time = (esp_timer_get_time() - transaction_start) / 1000;
+    ESP_LOGE(TAG, "TRANSACTION FAILED: DevID=%d, FC=0x%02X, Attempts=%d, Total Time=%lld ms",
+              device_id, function, modbus_config.retry_attempts, total_time);
 
     return result;
 }
@@ -178,6 +250,14 @@ esp_err_t modbus_manager_init(modbus_config_t *config)
 
     gpio_init();
     uart_init();
+
+    bool logging_enabled;
+    if (nvs_load_modbus_logging(&logging_enabled) == ESP_OK) {
+        modbus_logging_enabled = logging_enabled;
+    } else {
+        modbus_logging_enabled = false;
+    }
+    ESP_LOGI(TAG, "Modbus logging %s", modbus_logging_enabled ? "enabled" : "disabled");
 
     modbus_config.initialized = true;
     ESP_LOGI(TAG, "Modbus manager initialized successfully");
@@ -522,4 +602,20 @@ const char* modbus_result_to_string(modbus_result_t result)
         case MODBUS_RESULT_NOT_INITIALIZED: return "Not Initialized";
         default: return "Unknown";
     }
+}
+
+void modbus_manager_set_logging(bool enabled)
+{
+    modbus_logging_enabled = enabled;
+    esp_err_t err = nvs_save_modbus_logging(enabled);
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "Modbus logging %s and saved to NVS", enabled ? "enabled" : "disabled");
+    } else {
+        ESP_LOGW(TAG, "Modbus logging %s but failed to save to NVS", enabled ? "enabled" : "disabled");
+    }
+}
+
+bool modbus_manager_get_logging(void)
+{
+    return modbus_logging_enabled;
 }

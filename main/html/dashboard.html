@@ -120,7 +120,12 @@
                     <span id="dashboard-status" class="status-indicator status-unknown"></span>
                     <span>Real-Time Data</span>
                 </div>
-                <div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.9em; color: #6b7280;">
+                        <input type="checkbox" id="modbus-logging" style="margin-right: 5px; cursor: pointer;"
+                               onchange="toggleModbusLogging(this.checked)">
+                        Verbose Logging
+                    </label>
                     <button class="btn btn-secondary btn-sm" onclick="refreshData()">Refresh</button>
                     <button class="btn btn-secondary btn-sm" onclick="toggleAutoRefresh()" id="auto-refresh-btn">
                         Auto Refresh: OFF

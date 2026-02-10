@@ -134,3 +134,58 @@ bool nvs_has_credentials(void)
 
     return (err == ESP_OK);
 }
+
+esp_err_t nvs_save_modbus_logging(bool enabled)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t err;
+
+    err = nvs_open(NVS_MODBUS_NAMESPACE, NVS_READWRITE, &nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error opening NVS namespace: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    uint8_t enabled_u8 = enabled ? 1 : 0;
+    err = nvs_set_u8(nvs_handle, NVS_LOGGING_KEY, enabled_u8);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error saving logging config: %s", esp_err_to_name(err));
+        nvs_close(nvs_handle);
+        return err;
+    }
+
+    err = nvs_commit(nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error committing NVS: %s", esp_err_to_name(err));
+    } else {
+        ESP_LOGI(TAG, "Modbus logging config saved: %s", enabled ? "enabled" : "disabled");
+    }
+
+    nvs_close(nvs_handle);
+    return err;
+}
+
+esp_err_t nvs_load_modbus_logging(bool *enabled)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t err;
+
+    err = nvs_open(NVS_MODBUS_NAMESPACE, NVS_READONLY, &nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Modbus logging config not found, using default (disabled)");
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    uint8_t enabled_u8;
+    err = nvs_get_u8(nvs_handle, NVS_LOGGING_KEY, &enabled_u8);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Error reading logging config: %s", esp_err_to_name(err));
+        nvs_close(nvs_handle);
+        return err;
+    }
+
+    *enabled = enabled_u8 ? true : false;
+    ESP_LOGI(TAG, "Modbus logging config loaded: %s", *enabled ? "enabled" : "disabled");
+    nvs_close(nvs_handle);
+    return ESP_OK;
+}

@@ -45,31 +45,40 @@ esp_err_t modbus_build_request(uint8_t device_id, uint8_t function,
     }
     
     uint16_t index = 0;
-    
+
     frame[index++] = device_id;
     frame[index++] = function;
-    frame[index++] = (address >> 8) & 0xFF;
-    frame[index++] = address & 0xFF;
-    frame[index++] = (quantity >> 8) & 0xFF;
-    frame[index++] = quantity & 0xFF;
-    
-    if (data != NULL && data_len > 0) {
-        if (function == MODBUS_FC_WRITE_MULTIPLE_REGISTERS) {
-            frame[index++] = data_len * 2;
-            for (uint16_t i = 0; i < data_len; i++) {
-                frame[index++] = (data[i] >> 8) & 0xFF;
-                frame[index++] = data[i] & 0xFF;
-            }
-        } else if (function == MODBUS_FC_WRITE_MULTIPLE_COILS) {
-            frame[index++] = data_len;
-            for (uint16_t i = 0; i < data_len; i++) {
-                frame[index++] = data[i];
-            }
-        } else if (function == MODBUS_FC_WRITE_SINGLE_REGISTER) {
+
+    if (function == MODBUS_FC_WRITE_SINGLE_COIL || function == MODBUS_FC_WRITE_SINGLE_REGISTER) {
+        frame[index++] = (address >> 8) & 0xFF;
+        frame[index++] = address & 0xFF;
+
+        if (function == MODBUS_FC_WRITE_SINGLE_COIL) {
+            frame[index++] = data[0] ? 0xFF : 0x00;
+            frame[index++] = 0x00;
+        } else {
             frame[index++] = (data[0] >> 8) & 0xFF;
             frame[index++] = data[0] & 0xFF;
-        } else if (function == MODBUS_FC_WRITE_SINGLE_COIL) {
-            frame[index++] = data[0] ? 0xFF : 0x00;
+        }
+    } else {
+        frame[index++] = (address >> 8) & 0xFF;
+        frame[index++] = address & 0xFF;
+        frame[index++] = (quantity >> 8) & 0xFF;
+        frame[index++] = quantity & 0xFF;
+
+        if (data != NULL && data_len > 0) {
+            if (function == MODBUS_FC_WRITE_MULTIPLE_REGISTERS) {
+                frame[index++] = data_len * 2;
+                for (uint16_t i = 0; i < data_len; i++) {
+                    frame[index++] = (data[i] >> 8) & 0xFF;
+                    frame[index++] = data[i] & 0xFF;
+                }
+            } else if (function == MODBUS_FC_WRITE_MULTIPLE_COILS) {
+                frame[index++] = data_len;
+                for (uint16_t i = 0; i < data_len; i++) {
+                    frame[index++] = data[i];
+                }
+            }
         }
     }
     

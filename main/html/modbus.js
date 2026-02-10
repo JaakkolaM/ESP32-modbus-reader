@@ -27,6 +27,38 @@ async function apiCall(endpoint, method = 'GET', data = null) {
     }
 }
 
+async function loadLoggingConfig() {
+    try {
+        const response = await fetch('/api/modbus/logging-config');
+        const data = await response.json();
+        const checkbox = document.getElementById('modbus-logging');
+        if (checkbox) {
+            checkbox.checked = data.logging_enabled;
+        }
+        console.log('Logging config loaded:', data.logging_enabled ? 'enabled' : 'disabled');
+    } catch (error) {
+        console.error('Failed to load logging config:', error);
+    }
+}
+
+async function toggleModbusLogging(enabled) {
+    try {
+        const response = await fetch('/api/modbus/logging-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ logging_enabled: enabled })
+        });
+        const data = await response.json();
+        if (data.status === 'ok') {
+            console.log('Logging config saved:', enabled ? 'enabled' : 'disabled');
+        }
+    } catch (error) {
+        console.error('Failed to save logging config:', error);
+    }
+}
+
 function getStatusClass(status) {
     switch (status) {
         case 0: return 'status-unknown';
@@ -256,9 +288,19 @@ async function deleteRegister(deviceId, address) {
 }
 
 async function writeRegister(deviceId, address) {
-    const input = document.getElementById(`write-${deviceId}-${address}`);
+    // Try dashboard ID first, fall back to device list ID
+    let input = document.getElementById(`dash-write-${deviceId}-${address}`);
+    if (!input) {
+        input = document.getElementById(`write-${deviceId}-${address}`);
+    }
+
+    if (!input) {
+        alert('Input field not found for write operation!');
+        return;
+    }
+
     const value = parseFloat(input.value);
-    
+
     if (isNaN(value)) {
         alert('Please enter a valid number');
         return;
@@ -435,6 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (document.getElementById('dashboard-content')) {
+        loadLoggingConfig();
         refreshDashboard();
     }
 });

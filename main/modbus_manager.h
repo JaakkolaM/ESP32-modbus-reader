@@ -64,4 +64,7 @@ bool modbus_manager_is_polling(void);
 uint32_t modbus_manager_get_last_error(void);
 const char* modbus_result_to_string(modbus_result_t result);
 
+void modbus_manager_set_logging(bool enabled);
+bool modbus_manager_get_logging(void);
+
 #endif
