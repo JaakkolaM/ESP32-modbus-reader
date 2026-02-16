@@ -384,10 +384,14 @@ esp_err_t mqtt_client_update_config(const mqtt_config_t *config)
 {
     memcpy(&mqtt_config, config, sizeof(mqtt_config_t));
     
-    if (mqtt_client != NULL) {
-        mqtt_client_stop();
-        vTaskDelay(pdMS_TO_TICKS(100));
+    if (config->enabled && strlen(config->broker) > 0) {
+        if (mqtt_client != NULL) {
+            mqtt_client_stop();
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
         mqtt_client_start(config);
+    } else if (mqtt_client != NULL) {
+        mqtt_client_stop();
     }
     
     return ESP_OK;

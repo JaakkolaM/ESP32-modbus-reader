@@ -373,13 +373,23 @@
             }, 3000);
         }
         
+        async function loadMqttStatus() {
+            try {
+                const response = await fetch(API_BASE + '/config');
+                const data = await response.json();
+                updateStatus(data.connected);
+            } catch (error) {
+                console.error('Failed to load MQTT status:', error);
+            }
+        }
+        
         document.getElementById('mqtt-form').addEventListener('submit', saveMqttConfig);
         
         document.addEventListener('DOMContentLoaded', function() {
             loadMqttConfig();
         });
         
-        setInterval(loadMqttConfig, 5000);
+        setInterval(loadMqttStatus, 5000);
     </script>
 </body>
 </html>
