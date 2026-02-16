@@ -1,9 +1,9 @@
-#ifndef MQTT_CLIENT_H
-#define MQTT_CLIENT_H
+#ifndef MQTT_GATEWAY_H
+#define MQTT_GATEWAY_H
 
 #include <stdbool.h>
 #include "esp_err.h"
-#include "esp_mqtt_client.h"
+#include <mqtt_client.h>
 #include "modbus_devices.h"
 #include "nvs_storage.h"
 

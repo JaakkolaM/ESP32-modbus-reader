@@ -1,7 +1,7 @@
-#include "mqtt_client.h"
+#include "mqtt_gateway.h"
 #include "nvs_storage.h"
 #include "esp_log.h"
-#include "esp_mqtt_client.h"
+#include <mqtt_client.h>
 #include "esp_wifi.h"
 #include <string.h>
 #include <stdio.h>
@@ -126,7 +126,7 @@ static void mqtt_parse_set_message(const char *topic, const char *payload)
     uint16_t address;
     if (sscanf(topic_ptr, "%hhu/%hu/set", &device_id, &address) == 2) {
         uint16_t value = atoi(payload);
-        ESP_LOGI(TAG, "MQTT set: device=%d, address=%d, value=%d", device_id, address, value);
+        ESP_LOGI(TAG, "MQTT set: device=%u, address=%u, value=%u", (unsigned int)device_id, (unsigned int)address, (unsigned int)value);
         
         if (write_callback != NULL) {
             write_callback(device_id, address, value);
@@ -168,7 +168,7 @@ esp_err_t mqtt_client_start(const mqtt_config_t *config)
         mqtt_client = NULL;
     }
 
-    char mqtt_uri[128];
+    char mqtt_uri[256];
     if (strlen(mqtt_config.username) > 0) {
         snprintf(mqtt_uri, sizeof(mqtt_uri), "mqtt://%s:%s@%s:%d", 
                  mqtt_config.username, mqtt_config.password, 
@@ -297,7 +297,7 @@ esp_err_t mqtt_client_publish_discovery(void)
 
     uint8_t mac[6];
     esp_wifi_get_mac(WIFI_IF_STA, mac);
-    char device_id[16];
+    char device_id[24];
     snprintf(device_id, sizeof(device_id), "esp32modbus_%02x%02x%02x", mac[3], mac[4], mac[5]);
 
     for (uint8_t i = 0; i < device_count; i++) {

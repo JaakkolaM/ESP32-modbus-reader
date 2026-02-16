@@ -9,7 +9,7 @@
 #include "web_server.h"
 #include "modbus_devices.h"
 #include "modbus_manager.h"
-#include "mqtt_client.h"
+#include "mqtt_gateway.h"
 
 static const char *TAG = "APP";
 

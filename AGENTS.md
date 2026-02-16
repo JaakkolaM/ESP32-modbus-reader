@@ -338,3 +338,60 @@ cJSON_Delete(root);
 - Web files in `main/html/`
 - One module per file pair (e.g., `modbus_devices.c/h`)
 - Keep functions cohesive and small (<100 lines preferred)
+
+## ESP-IDF Specific Guidelines
+
+### Component Dependencies (CMakeLists.txt)
+- ESP-IDF v5.x requires explicit `REQUIRES` for all component dependencies
+- Common components to include: `driver`, `nvs_flash`, `esp_netif`, `esp_event`, `esp_wifi`, `esp_http_server`, `json`, `mqtt`
+- Example:
+```cmake
+idf_component_register(SRCS "main.c" "wifi_manager.c" ...
+                       REQUIRES driver nvs_flash esp_netif esp_event esp_wifi esp_http_server json mqtt)
+```
+
+### Header File Naming
+- **Avoid naming project headers the same as ESP-IDF component headers**
+- Example: Don't create `mqtt_client.h` - conflicts with ESP-IDF's `<mqtt_client.h>`
+- Use unique names like `mqtt_gateway.h` or `my_mqtt.h`
+
+### ESP-IDF v5.x MQTT Include
+- Use `#include <mqtt_client.h>` (angle brackets, mqtt_client.h)
+- NOT `#include "esp_mqtt_client.h"` (older ESP-IDF versions)
+
+### Partition Tables
+- Default factory partition is 1MB - may be too small for larger apps
+- Create `partitions.csv` for custom partition layout:
+```csv
+# Name,   Type, SubType, Offset,   Size, Flags
+nvs,      data, nvs,     0x9000,   0x6000,
+phy_init, data, phy,     0xf000,   0x1000,
+factory,  app,  factory, 0x10000,  0x200000,
+```
+- Add to `sdkconfig.defaults`:
+```
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+```
+
+### Flash Size Configuration
+- ESP32-C3 typically has 4MB flash - configure in `sdkconfig.defaults`:
+```
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+```
+
+### Buffer Size Warnings
+- ESP-IDF treats format truncation warnings as errors
+- Ensure `snprintf()` buffers are large enough for the content
+- Include `<inttypes.h>` and use `PRIu32`, `PRId32` etc. for format specifiers
+
+### HTTP Server URI Handler Limit
+- Default max URI handlers is 8 - easily exceeded when adding API endpoints
+- Set in code when creating httpd config:
+```c
+httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+config.max_uri_handlers = 24;  // Increase from default 8
+```
+- Error message: `httpd_register_uri_handler: no slots left for registering handler`
+

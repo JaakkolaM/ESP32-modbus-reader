@@ -7,7 +7,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "mqtt_client.h"
+#include "mqtt_gateway.h"
 
 static const char *TAG = "MODBUS_DEVICES";
 static const char *NVS_NAMESPACE = "modbus_config";

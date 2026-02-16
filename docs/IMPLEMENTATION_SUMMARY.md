@@ -1,12 +1,72 @@
 # ESP32 Modbus Implementation Summary
 
-**Date**: 2026-02-11
+**Date**: 2026-02-17
 
 ## Overview
 
-Successfully implemented full Modbus RTU read/write functionality with web-based configuration and dashboard for ESP32-C3.
+Successfully implemented full Modbus RTU read/write functionality with MQTT support and Home Assistant auto-discovery for ESP32-C3.
 
 ## Version History
+
+### v1.4.0 (2026-02-17) - MQTT Integration
+
+**New Features:**
+
+1. **MQTT Client Support**
+   - Full MQTT client implementation using ESP-IDF mqtt component
+   - Configurable broker address, port, username, password
+   - Configurable topic prefix for flexible integration
+   - Auto-reconnect on broker disconnect
+   - Last Will Testament (LWT) for availability tracking
+
+2. **Home Assistant Auto-Discovery**
+   - Automatic device discovery for all configured registers
+   - Sensor entities for read-only registers
+   - Switch entities for writable coils
+   - Number entities for writable holding registers
+   - Unique device ID based on WiFi MAC address
+
+3. **MQTT Publishing**
+   - Automatic publish on polling intervals
+   - Publish on value changes (web writes, MQTT set commands)
+   - State topics for all register values
+   - Command topics for writable registers
+
+4. **Web Interface**
+   - MQTT configuration page at `/mqtt`
+   - Real-time connection status indicator
+   - Form for broker configuration
+   - Enable/disable MQTT service
+
+**Technical Details:**
+
+- Renamed `mqtt_client.c/h` to `mqtt_gateway.c/h` to avoid naming conflict with ESP-IDF's `<mqtt_client.h>`
+- Added `esp_wifi` and `esp_http_server` to CMakeLists.txt REQUIRES
+- Created custom `partitions.csv` with 2MB factory partition (app size exceeded 1MB)
+- Configured 4MB flash size for ESP32-C3
+- Increased HTTP server URI handlers from 20 to 24
+
+**Files Created:**
+- main/mqtt_gateway.h - MQTT client header
+- main/mqtt_gateway.c - MQTT implementation
+- main/html/mqtt.html - MQTT configuration page
+- partitions.csv - Custom partition table
+
+**Files Modified:**
+- main/CMakeLists.txt - Added mqtt_gateway.c and dependencies
+- main/nvs_storage.c/h - Added MQTT config storage
+- main/web_server.c - Added MQTT API endpoints and /mqtt route
+- main/modbus_devices.c - Added MQTT publish on register changes
+- main/main.c - Added MQTT initialization
+- sdkconfig.defaults - Added partition table and flash size config
+- AGENTS.md - Added ESP-IDF specific guidelines
+
+**Testing:**
+- ✅ MQTT navigation works
+- ✅ Configuration page loads
+- ⏳ Form input retention (pending fix)
+
+---
 
 ### v1.3.1 (2026-02-16) - NVS Key Length Fix
 

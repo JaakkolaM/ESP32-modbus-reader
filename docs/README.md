@@ -20,6 +20,7 @@ A complete Modbus RTU gateway for ESP32-C3 microcontrollers with WiFi connectivi
 - ✅ **Auto-Reconnect** - Automatically connects to WiFi and Modbus devices
 - ✅ **Status Monitoring** - Real-time connection status and device health
 - ✅ **Reconfiguration** - Easy credential clearing and device management
+- ✅ **MQTT Support** - Home Assistant auto-discovery, remote control, and status
 
 ### Modbus Features
 
@@ -714,16 +715,18 @@ I (12345) MODBUS_MANAGER: ATTEMPT 1/3: DevID=1, FC=0x02, Addr=0, Result=OK
 
 ## Roadmap
 
-### Version 1.3 (Current - 2026-02-16)
+### Version 1.4 (Current - 2026-02-17)
 
-- ✅ Fixed NVS key names too long causing ESP_ERR_NVS_KEY_TOO_LONG
-- ✅ Shortened all NVS keys to ≤15 characters (ESP32 limit)
-- ✅ Fixed NVS data persistence bug with error handling and safe defaults
-- ✅ Added comprehensive error handling for all NVS read operations
-- ✅ Added detailed logging for NVS save/load operations
-- ✅ Fixed corrupted modbus_devices_load() function
-- ✅ Fixed syntax errors and undefined variables
-- 📝 Planned: MQTT integration
+- ✅ MQTT support with Home Assistant auto-discovery
+- ✅ MQTT configuration page at `/mqtt`
+- ✅ Configurable broker, port, username, password, topic prefix
+- ✅ Automatic device discovery for sensors, switches, and numbers
+- ✅ Publish on polling intervals and on value changes
+- ✅ Write capability via MQTT set commands
+- ✅ Auto-reconnect on broker disconnect
+- ✅ MQTT status indicator on web pages
+- ✅ Custom partition table for larger app (2MB factory partition)
+- ✅ Fixed HTTP server URI handler limit
 - 📝 Planned: Historical data logging
 
 ### Version 1.1 (2025-01-29)

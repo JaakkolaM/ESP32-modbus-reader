@@ -3,7 +3,7 @@
 #include "wifi_manager.h"
 #include "modbus_devices.h"
 #include "modbus_manager.h"
-#include "mqtt_client.h"
+#include "mqtt_gateway.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "cJSON.h"
@@ -106,6 +106,11 @@ static esp_err_t get_static_file_handler(httpd_req_t *req)
         content_type = "application/javascript";
         file_start = modbus_js_start;
         file_end = modbus_js_end;
+    } else if (strcmp(uri, "/mqtt.html") == 0 || strcmp(uri, "/mqtt") == 0) {
+        filename = "mqtt.html";
+        content_type = "text/html";
+        file_start = mqtt_html_start;
+        file_end = mqtt_html_end;
     } else {
         httpd_resp_send_404(req);
         return ESP_OK;
@@ -890,6 +895,12 @@ static httpd_uri_t uri_handlers[] = {
         .user_ctx = NULL
     },
     {
+        .uri = "/mqtt",
+        .method = HTTP_GET,
+        .handler = get_static_file_handler,
+        .user_ctx = NULL
+    },
+    {
         .uri = "/status",
         .method = HTTP_GET,
         .handler = get_status_handler,
@@ -973,7 +984,7 @@ esp_err_t web_server_start(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 20;
+    config.max_uri_handlers = 24;
 
     ESP_LOGI(TAG, "Starting HTTP server on port %" PRIu16, config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
