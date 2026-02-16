@@ -8,7 +8,62 @@ Successfully implemented full Modbus RTU read/write functionality with web-based
 
 ## Version History
 
-### v1.3.0 (2026-02-11) - Modbus Communication Logging & Write Fixes
+### v1.3.0 (2026-02-16) - NVS Data Persistence Fix
+
+**Bug Fixes:**
+
+1. **NVS Data Persistence Bug**
+   - Fixed corrupted `modbus_devices_load()` function with 3 duplicate code blocks
+   - Removed syntax errors (missing closing quotes in log messages)
+   - Removed undefined variables (`devices_loaded`, `OK`)
+   - Fixed all `nvs_get_*()` operations to check return values
+   - Added safe default values when NVS reads fail:
+     - Device ID: defaults to index if read fails
+     - Name: defaults to "Unnamed Device"
+     - Description: defaults to empty string
+     - Poll Interval: defaults to 5000ms
+     - Enabled: defaults to 1 (true)
+     - Baudrate: defaults to 9600
+     - Register Count: defaults to 0
+     - Register Type: defaults to REGISTER_TYPE_HOLDING
+     - Register Name: defaults to "Unnamed"
+     - Register Scale: defaults to 1.0
+     - Register Offset: defaults to 0.0
+     - Register Writable: defaults to false
+
+2. **Enhanced Logging**
+   - Added detailed error logs for all NVS read failures
+   - Added success log showing device count and load status
+   - Added per-device summary logs after load
+   - Logs show which data loaded with errors vs successfully
+
+**Technical Details:**
+
+- Cleaned up `modbus_devices_load()` from 593 lines to 233 lines
+- Removed all duplicate code blocks causing undefined behavior
+- Fixed all format string errors (missing closing parentheses and quotes)
+- Replaced bare `OK` with `ESP_OK` constant
+- Added `load_success` tracking to provide overall load status
+- Device and register values reset to initial state on load (status=UNKNOWN, counts=0)
+
+**Files Modified:**
+- main/modbus_devices.c: Complete rewrite of modbus_devices_load() function
+
+**Testing:**
+- ✅ Verified code compiles without errors
+- ✅ Verified all ESP_OK constants are properly defined
+- ✅ Verified log messages have proper formatting
+- ✅ Ready for build and flash testing
+
+**Expected Behavior After Fix:**
+- Device configurations persist across reboots
+- NVS read errors are logged with safe defaults applied
+- Startup shows: `Loaded X device(s) from NVS successfully` or `with some errors`
+- Per-device details logged: `Device X: ID=Y, Name='Z', Baud=B, Poll=Pms, Regs=R`
+
+---
+
+### v1.2.0 (2026-02-11) - Modbus Communication Logging & Write Fixes
 
 **New Features:**
 

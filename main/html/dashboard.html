@@ -3,113 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modbus Dashboard</title>
+    <title>ESP32 Modbus Reader</title>
     <link rel="stylesheet" href="/style.css">
     <style>
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
         }
         .value-card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 20px;
-            transition: transform 0.2s;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .value-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 71, 171, 0.1) 0%, transparent 50%, rgba(20, 184, 166), 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
         .value-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-8px) scale(1.03);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        0 0 40px rgba(0, 71, 171, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .value-card:hover::before {
+            opacity: 1;
         }
         .value-label {
             font-size: 0.9em;
-            color: #6b7280;
-            margin-bottom: 5px;
+            color: rgba(255, 255, 255, 0.65);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
         }
         .value-display {
-            font-size: 2em;
-            font-weight: bold;
-            color: #1f2937;
+            font-size: 2.2em;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.98);
+            background: linear-gradient(135deg, #fff 0%, #93C5FD 50%, #60A5FA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            z-index: 1;
         }
         .value-unit {
             font-size: 0.6em;
-            color: #6b7280;
-            margin-left: 5px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 6px;
         }
         .value-timestamp {
             font-size: 0.8em;
-            color: #9ca3af;
-            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 10px;
+            position: relative;
+            z-index: 1;
         }
         .status-indicator {
             display: inline-block;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            margin-right: 5px;
+            margin-right: 6px;
         }
-        .status-online { background: #10b981; }
-        .status-offline { background: #ef4444; }
-        .status-error { background: #f59e0b; }
+        .status-online {
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.6);
+        }
+        .status-offline {
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+            box-shadow: 0 0 20px rgba(20, 184, 166, 0.6);
+        }
+        .status-error {
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+            box-shadow: 0 0 20px rgba(20, 184, 166, 0.6);
+        }
         .refresh-btn {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            background: #2563eb;
-            color: white;
+            background: linear-gradient(135deg, #0047AB 0%, #0A4FBF 50%, #14b8a6 100%);
+            background-size: 200% 200%;
+            color: rgba(255, 255, 255, 0.98);
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-            font-size: 24px;
-            transition: transform 0.2s;
+            box-shadow: 0 8px 30px rgba(0, 71, 171, 0.5);
+            font-size: 26px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: gradientShift 3s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         .refresh-btn:hover {
-            transform: rotate(180deg);
+            transform: rotate(180deg) scale(1.15);
+            box-shadow: 0 12px 40px rgba(0, 71, 171, 0.6),
+                        0 0 60px rgba(0, 71, 171, 0.4);
         }
         .refresh-btn:active {
-            transform: rotate(360deg);
+            transform: rotate(360deg) scale(1.05);
         }
         .auto-refresh {
             position: fixed;
-            bottom: 80px;
-            right: 20px;
+            bottom: 90px;
+            right: 24px;
         }
         .write-input {
-            width: 100px;
-            padding: 5px;
+            width: 110px;
+            padding: 10px 14px;
             margin-right: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+        }
+        .write-input:focus {
+            outline: none;
+            border-color: rgba(0, 71, 171, 0.6);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 4px rgba(0, 71, 171, 0.15),
+                        0 0 20px rgba(0, 71, 171, 0.2);
         }
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
         .section-title {
-            font-size: 1.3em;
-            font-weight: bold;
+            font-size: 1.35em;
+            font-weight: 700;
             display: flex;
             align-items: center;
+            color: rgba(255, 255, 255, 0.98);
+            background: linear-gradient(135deg, #fff 0%, #93C5FD 50%, #60A5FA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.15); }
         }
         .loading {
             animation: pulse 1.5s ease-in-out infinite;
         }
+        h3 {
+            color: rgba(255, 255, 255, 0.98);
+            font-weight: 700;
+            margin: 24px 0 18px 0;
+        }
+        a {
+            color: #0047AB;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        a:hover {
+            text-shadow: 0 0 25px rgba(0, 71, 171, 0.6);
+            color: #a78bfa;
+        }
     </style>
 </head>
 <body>
+    <div id="notification-container"></div>
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
     <div class="container">
         <header>
             <h1>Modbus Dashboard</h1>
             <nav>
-                <a href="/" class="btn btn-secondary">WiFi Config</a>
+                <a href="/index.html" class="btn btn-secondary">WiFi Config</a>
                 <a href="/modbus.html" class="btn btn-primary">Device Config</a>
             </nav>
         </header>
@@ -120,8 +213,8 @@
                     <span id="dashboard-status" class="status-indicator status-unknown"></span>
                     <span>Real-Time Data</span>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.9em; color: #6b7280;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">
                         <input type="checkbox" id="modbus-logging" style="margin-right: 5px; cursor: pointer;"
                                onchange="toggleModbusLogging(this.checked)">
                         Verbose Logging
@@ -137,7 +230,7 @@
         </main>
 
         <footer>
-            <p>ESP32-C3 Modbus Manager - Auto-refresh: <span id="refresh-interval">5</span>s</p>
+            <p>ESP32 Modbus Reader - Auto-refresh: <span id="refresh-interval">5</span>s</p>
         </footer>
     </div>
 

@@ -1,3 +1,28 @@
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notification-container');
+    if (!container) {
+        const notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        document.body.appendChild(notificationContainer);
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = message;
+    
+    const containerEl = document.getElementById('notification-container');
+    containerEl.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('notification-show');
+    }, 10);
+    
+    setTimeout(() => {
+        notification.classList.remove('notification-show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
 function updateStatus() {
     fetch('/status')
         .then(response => response.json())
@@ -8,7 +33,7 @@ function updateStatus() {
             const ip = document.getElementById('ip');
             const currentSsid = document.getElementById('current-ssid');
             const rssi = document.getElementById('rssi');
-
+            
             if (data.connected) {
                 statusText.textContent = 'Connected';
                 statusDot.classList.add('connected');
@@ -18,7 +43,7 @@ function updateStatus() {
                 statusDot.classList.add('disconnected');
                 statusDot.classList.remove('connected');
             }
-
+            
             mode.textContent = data.mode === 'AP' ? 'Access Point' : 'Station';
             ip.textContent = data.ip;
             currentSsid.textContent = data.ssid || '--';
@@ -36,7 +61,7 @@ document.getElementById('wifi-form').addEventListener('submit', function(e) {
     const password = document.getElementById('password').value;
 
     if (!ssid || ssid.length === 0) {
-        alert('Please enter SSID');
+        showNotification('Please enter SSID', 'error');
         return;
     }
 
@@ -50,14 +75,14 @@ document.getElementById('wifi-form').addEventListener('submit', function(e) {
     })
     .then(response => {
         if (response.ok) {
-            alert('Credentials saved! Device will reboot and connect to WiFi.');
+showNotification('Credentials saved! Device will reboot and connect to WiFi.', 'success');
         } else {
-            alert('Failed to save credentials');
+            showNotification('Failed to save credentials', 'error');
         }
     })
     .catch(error => {
         console.error('Error saving credentials:', error);
-        alert('Error saving credentials');
+        showNotification('Error saving credentials', 'error');
     });
 });
 
@@ -68,14 +93,14 @@ document.getElementById('clear-btn').addEventListener('click', function() {
         })
         .then(response => {
             if (response.ok) {
-                alert('Credentials cleared! Device will reboot.');
+                showNotification('Credentials cleared! Device will reboot.');
             } else {
-                alert('Failed to clear credentials');
+                showNotification('Failed to clear credentials', 'error');
             }
         })
         .catch(error => {
             console.error('Error clearing credentials:', error);
-            alert('Error clearing credentials');
+showNotification('Error clearing credentials', 'error');
         });
     }
 });

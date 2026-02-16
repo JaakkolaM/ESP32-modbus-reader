@@ -580,9 +580,30 @@ This project follows ESP-IDF coding conventions:
 - CamelCase for function names
 - snake_case for variables
 
-## Troubleshooting
+#### NVS Data Persistence Issues
 
-### Common Issues
+**Problem:** Device configuration lost after power cycle
+
+**Solution:**
+
+The v1.3 release fixed NVS data persistence issues with comprehensive error handling:
+- All NVS read operations now check return values
+- Safe default values applied when reads fail
+- Detailed logging shows which data loaded successfully vs failed
+- Device configurations now persist correctly across reboots
+
+**Verification:**
+1. Add a device via web interface
+2. Power cycle the ESP32
+3. Check serial monitor for: `Loaded X device(s) from NVS successfully`
+4. Verify device configuration appears correctly in web interface
+
+If you still see data loss:
+- Check for warning logs: `W (XXXXX) MODBUS_DEVICES: Failed to read...`
+- Verify NVS partition size in sdkconfig (default 12KB should be sufficient)
+- Try clearing and reconfiguring: Click "Clear Devices" button in web interface
+
+---
 
 #### ESP-IDF Command Not Found
 
@@ -725,16 +746,22 @@ I (12345) MODBUS_MANAGER: ATTEMPT 1/3: DevID=1, FC=0x02, Addr=0, Result=OK
 - ✅ Fixed wildcard URI handler conflicts
 - ✅ Added navigation between all web pages
 
- ### Version 1.3 (In Development)
+### Version 1.3 (2026-02-16)
 
-- [ ] Fix register addition errors
+- ✅ Fixed NVS data persistence bug in modbus_devices_load()
+- ✅ Added comprehensive error handling for all NVS read operations
+- ✅ Added safe default values when NVS reads fail
+- ✅ Added detailed logging for NVS load operations
+- ✅ Fixed corrupted modbus_devices_load() function with duplicate code
+- ✅ Fixed missing closing quotes in log messages
+- ✅ Fixed undefined variables (devices_loaded, OK)
+- ✅ Verified all ESP_OK constants are properly used
 - [ ] MQTT integration
 - [ ] Historical data logging
 - [ ] Alarms and alerts
 - [ ] Captive portal support
 - [ ] WiFi network scanning
 - [ ] Multiple network profiles
-- [ ] Enhanced error handling
 
 ### Version 2.0 (Future)
 

@@ -123,7 +123,7 @@ async function loadDevices() {
         renderDevices(devices);
     } catch (error) {
         console.error('Failed to load devices:', error);
-        alert('Failed to load devices. Please refresh the page.');
+        showNotification('Failed to load devices. Please refresh the page.', 'error');
     }
 }
 
@@ -226,9 +226,9 @@ async function addDevice(event) {
         await apiCall('/devices', 'POST', device);
         form.reset();
         loadDevices();
-        alert('Device added successfully!');
+        showNotification('Device added successfully!', 'success');
     } catch (error) {
-        alert('Failed to add device: ' + error.message);
+        showNotification('Failed to add device: ' + error.message, 'error');
     }
 }
 
@@ -240,9 +240,9 @@ async function deleteDevice(deviceId) {
     try {
         await apiCall(`/devices?device_id=${deviceId}`, 'DELETE');
         loadDevices();
-        alert('Device deleted successfully!');
+        showNotification('Device deleted successfully!', 'success');
     } catch (error) {
-        alert('Failed to delete device: ' + error.message);
+        showNotification('Failed to delete device: ' + error.message, 'error');
     }
 }
 
@@ -267,9 +267,9 @@ async function addRegister(event) {
         await apiCall('/registers', 'POST', register);
         closeModal();
         loadDevices();
-        alert('Register added successfully!');
+        showNotification('Register added successfully!', 'success');
     } catch (error) {
-        alert('Failed to add register: ' + error.message);
+        showNotification('Failed to add register: ' + error.message, 'error');
     }
 }
 
@@ -281,10 +281,35 @@ async function deleteRegister(deviceId, address) {
     try {
         await apiCall(`/registers?device_id=${deviceId}&address=${address}`, 'DELETE');
         loadDevices();
-        alert('Register deleted successfully!');
+        showNotification('Register deleted successfully!', 'success');
     } catch (error) {
-        alert('Failed to delete register: ' + error.message);
+        showNotification('Failed to delete register: ' + error.message, 'error');
     }
+}
+
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notification-container');
+    if (!container) {
+        const notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        document.body.appendChild(notificationContainer);
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = message;
+    
+    const containerEl = document.getElementById('notification-container');
+    containerEl.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('notification-show');
+    }, 10);
+    
+    setTimeout(() => {
+        notification.classList.remove('notification-show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 async function writeRegister(deviceId, address) {
@@ -293,25 +318,30 @@ async function writeRegister(deviceId, address) {
     if (!input) {
         input = document.getElementById(`write-${deviceId}-${address}`);
     }
-
+    
     if (!input) {
-        alert('Input field not found for write operation!');
+        showNotification('Input field not found for write operation!', 'error');
         return;
     }
-
+    
     const value = parseFloat(input.value);
-
+    
     if (isNaN(value)) {
-        alert('Please enter a valid number');
+        showNotification('Please enter a valid number', 'error');
         return;
     }
-
+    
     try {
         await apiCall(`/write?device_id=${deviceId}&address=${address}`, 'POST', { value });
-        alert('Register written successfully!');
-        loadDevices();
+        showNotification('Register written successfully!', 'success');
+        
+        if (document.getElementById('devices-list')) {
+            loadDevices();
+        } else if (document.getElementById('dashboard-content')) {
+            refreshDashboard();
+        }
     } catch (error) {
-        alert('Failed to write register: ' + error.message);
+        showNotification('Failed to write register: ' + error.message, 'error');
     }
 }
 
@@ -365,9 +395,9 @@ async function addPresetDevice(device, registers) {
         }
         
         loadDevices();
-        alert(`${device.name} preset added successfully with ${registers.length} registers!`);
+        showNotification(`${device.name} preset added successfully with ${registers.length} registers!`, 'success');
     } catch (error) {
-        alert('Failed to add preset: ' + error.message);
+        showNotification('Failed to add preset: ' + error.message, 'error');
     }
 }
 
