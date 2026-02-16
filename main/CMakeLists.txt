@@ -4,9 +4,7 @@ idf_component_register(SRCS "main.c" "wifi_manager.c" "web_server.c" "nvs_storag
                      INCLUDE_DIRS "."
                      EMBED_FILES "html/index.html" "html/style.css" "html/script.js"
                      "html/modbus.html" "html/dashboard.html" "html/modbus.js"
-                     "html/mqtt.html")
+                     "html/mqtt.html"
+                     REQUIRES esp_mqtt)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-error=format" "-Wformat-security")
-
-# MQTT component dependency
-set(dependencies esp_mqtt)
