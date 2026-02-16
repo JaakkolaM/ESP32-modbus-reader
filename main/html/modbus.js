@@ -251,6 +251,10 @@ async function addRegister(event) {
     const form = event.target;
     const formData = new FormData(form);
     
+    const deviceIdValue = formData.get('device_id');
+    console.log('addRegister: device_id from form =', deviceIdValue);
+    console.log('addRegister: parsed device_id =', parseInt(deviceIdValue));
+    
     const register = {
         device_id: parseInt(formData.get('device_id')),
         address: parseInt(formData.get('address')),
@@ -262,6 +266,8 @@ async function addRegister(event) {
         writable: formData.get('writable') === 'on',
         description: formData.get('description')
     };
+    
+    console.log('addRegister: register object =', JSON.stringify(register));
 
     try {
         await apiCall('/registers', 'POST', register);

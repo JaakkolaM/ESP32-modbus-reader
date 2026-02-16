@@ -391,19 +391,22 @@ static esp_err_t api_post_register_handler(httpd_req_t *req)
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
         return ESP_FAIL;
     }
-
+    
     cJSON *device_id = cJSON_GetObjectItem(root, "device_id");
     if (!device_id || !cJSON_IsNumber(device_id)) {
+        ESP_LOGE(TAG, "POST /api/modbus/registers: Missing or invalid device_id");
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing or invalid field: device_id");
         cJSON_Delete(root);
         return ESP_FAIL;
     }
+    ESP_LOGI(TAG, "POST /api/modbus/registers: device_id = %d", device_id->valueint);
     if (device_id->valueint < 1 || device_id->valueint > 247) {
+        ESP_LOGE(TAG, "POST /api/modbus/registers: Invalid device_id %d (must be 1-247)", device_id->valueint);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device_id: must be 1-247");
         cJSON_Delete(root);
         return ESP_FAIL;
     }
-
+    
     cJSON *address = cJSON_GetObjectItem(root, "address");
     if (!address || !cJSON_IsNumber(address)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing or invalid field: address");
