@@ -3,6 +3,7 @@
 #include "wifi_manager.h"
 #include "modbus_devices.h"
 #include "modbus_manager.h"
+#include "mqtt_client.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "cJSON.h"
@@ -23,6 +24,8 @@ extern const char dashboard_html_start[] asm("_binary_dashboard_html_start");
 extern const char dashboard_html_end[] asm("_binary_dashboard_html_end");
 extern const char modbus_js_start[] asm("_binary_modbus_js_start");
 extern const char modbus_js_end[] asm("_binary_modbus_js_end");
+extern const char mqtt_html_start[] asm("_binary_mqtt_html_start");
+extern const char mqtt_html_end[] asm("_binary_mqtt_html_end");
 
 static const char *TAG = "WEB_SERVER";
 static httpd_handle_t server = NULL;
@@ -730,6 +733,111 @@ static esp_err_t api_post_logging_config_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t api_get_mqtt_handler(httpd_req_t *req)
+{
+    mqtt_config_t config;
+    esp_err_t err = nvs_load_mqtt_config(&config);
+    
+    if (err != ESP_OK && err != ESP_ERR_NOT_FOUND) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to load MQTT config");
+        return ESP_FAIL;
+    }
+    
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddBoolToObject(root, "enabled", config.enabled);
+    cJSON_AddStringToObject(root, "broker", config.broker);
+    cJSON_AddNumberToObject(root, "port", config.port);
+    cJSON_AddStringToObject(root, "username", config.username);
+    cJSON_AddStringToObject(root, "prefix", config.prefix);
+    cJSON_AddNumberToObject(root, "publish_interval", config.publish_interval);
+    cJSON_AddNumberToObject(root, "connected", mqtt_client_is_connected());
+    
+    char *json_str = cJSON_PrintUnformatted(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    
+    free(json_str);
+    cJSON_Delete(root);
+    
+    return ESP_OK;
+}
+
+static esp_err_t api_post_mqtt_handler(httpd_req_t *req)
+{
+    char buf[1024];
+    int ret = httpd_req_recv(req, buf, sizeof(buf));
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive data");
+        return ESP_FAIL;
+    }
+    buf[ret] = '\0';
+    
+    cJSON *root = cJSON_Parse(buf);
+    if (root == NULL) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+    
+    mqtt_config_t config = {0};
+    
+    cJSON *enabled = cJSON_GetObjectItem(root, "enabled");
+    if (enabled && cJSON_IsBool(enabled)) {
+        config.enabled = cJSON_IsTrue(enabled);
+    }
+    
+    cJSON *broker = cJSON_GetObjectItem(root, "broker");
+    if (broker && cJSON_IsString(broker)) {
+        strncpy(config.broker, broker->valuestring, MQTT_BROKER_MAX_LEN - 1);
+    }
+    
+    cJSON *port = cJSON_GetObjectItem(root, "port");
+    if (port && cJSON_IsNumber(port)) {
+        config.port = port->valueint;
+    } else {
+        config.port = MQTT_DEFAULT_PORT;
+    }
+    
+    cJSON *username = cJSON_GetObjectItem(root, "username");
+    if (username && cJSON_IsString(username)) {
+        strncpy(config.username, username->valuestring, MQTT_USERNAME_MAX_LEN - 1);
+    }
+    
+    cJSON *password = cJSON_GetObjectItem(root, "password");
+    if (password && cJSON_IsString(password)) {
+        strncpy(config.password, password->valuestring, MQTT_PASSWORD_MAX_LEN - 1);
+    }
+    
+    cJSON *prefix = cJSON_GetObjectItem(root, "prefix");
+    if (prefix && cJSON_IsString(prefix)) {
+        strncpy(config.prefix, prefix->valuestring, MQTT_PREFIX_MAX_LEN - 1);
+    } else {
+        strcpy(config.prefix, MQTT_DEFAULT_PREFIX);
+    }
+    
+    cJSON *interval = cJSON_GetObjectItem(root, "publish_interval");
+    if (interval && cJSON_IsNumber(interval)) {
+        config.publish_interval = interval->valueint;
+    } else {
+        config.publish_interval = MQTT_DEFAULT_INTERVAL;
+    }
+    
+    esp_err_t err = nvs_save_mqtt_config(&config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to save MQTT config: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save MQTT config");
+        cJSON_Delete(root);
+        return ESP_FAIL;
+    }
+    
+    mqtt_client_update_config(&config);
+    
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, "{\"status\":\"ok\"}", 15);
+    
+    cJSON_Delete(root);
+    return ESP_OK;
+}
+
 static esp_err_t root_handler(httpd_req_t *req)
 {
     ESP_LOGI(TAG, "Root handler called");
@@ -771,6 +879,12 @@ static httpd_uri_t uri_handlers[] = {
     },
     {
         .uri = "/modbus.js",
+        .method = HTTP_GET,
+        .handler = get_static_file_handler,
+        .user_ctx = NULL
+    },
+    {
+        .uri = "/mqtt.html",
         .method = HTTP_GET,
         .handler = get_static_file_handler,
         .user_ctx = NULL
@@ -840,6 +954,18 @@ static httpd_uri_t uri_handlers[] = {
         .method = HTTP_POST,
         .handler = api_post_logging_config_handler,
         .user_ctx = NULL
+    },
+    {
+        .uri = "/api/mqtt/config",
+        .method = HTTP_GET,
+        .handler = api_get_mqtt_handler,
+        .user_ctx = NULL
+    },
+    {
+        .uri = "/api/mqtt/config",
+        .method = HTTP_POST,
+        .handler = api_post_mqtt_handler,
+        .user_ctx = NULL
     }
 };
 
@@ -847,7 +973,7 @@ esp_err_t web_server_start(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 18;
+    config.max_uri_handlers = 20;
 
     ESP_LOGI(TAG, "Starting HTTP server on port %" PRIu16, config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {

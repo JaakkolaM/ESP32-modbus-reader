@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "mqtt_client.h"
 
 static const char *TAG = "MODBUS_DEVICES";
 static const char *NVS_NAMESPACE = "modbus_config";
@@ -510,6 +511,14 @@ esp_err_t modbus_update_register_value(uint8_t device_id, uint16_t address, uint
 
     reg->last_value = value;
     reg->last_update = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    
+    if (mqtt_client_is_connected()) {
+        modbus_device_t *device = modbus_get_device(device_id);
+        if (device != NULL) {
+            mqtt_client_publish_register(device_id, device->name, reg);
+        }
+    }
+    
     return ESP_OK;
 }
 

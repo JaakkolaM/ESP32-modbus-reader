@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Modbus Reader - MQTT</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .device-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .device-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 71, 171, 0.1) 0%, transparent 50%, rgba(20, 184, 166, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .device-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        0 0 40px rgba(0, 71, 171, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .device-card:hover::before {
+            opacity: 1;
+        }
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 1;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 1;
+        }
+        .section-title {
+            font-size: 1.25em;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.98);
+            background: linear-gradient(135deg, #fff 0%, #93C5FD 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+        .mqtt-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 700;
+        }
+        .mqtt-status.connected {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.4);
+        }
+        .mqtt-status.disconnected {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-dot.connected {
+            background: #34d399;
+            box-shadow: 0 0 8px #34d399;
+        }
+        .status-dot.disconnected {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: rgba(0, 71, 171, 0.6);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 4px rgba(0, 71, 171, 0.15),
+                        0 0 20px rgba(0, 71, 171, 0.2);
+        }
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0047AB 0%, #0891b2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 71, 171, 0.4);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 71, 171, 0.5);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .checkbox-group:hover {
+            border-color: rgba(0, 71, 171, 0.6);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #0047AB;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="notification-container"></div>
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
+    <div class="container">
+        <header>
+            <h1>MQTT Configuration</h1>
+            <nav>
+                <a href="/" class="btn btn-secondary">WiFi Config</a>
+                <a href="/modbus.html" class="btn btn-secondary">Modbus</a>
+                <a href="/dashboard.html" class="btn btn-primary">Dashboard</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="device-card">
+                <div class="section-header">
+                    <h2 class="section-title">MQTT Settings</h2>
+                    <div id="mqtt-status" class="mqtt-status disconnected">
+                        <span class="status-dot"></span>
+                        <span>Disconnected</span>
+                    </div>
+                </div>
+                
+                <form id="mqtt-form">
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="mqtt-enabled" name="enabled">
+                            <label for="mqtt-enabled">Enable MQTT</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="mqtt-broker">Broker Address</label>
+                            <input type="text" id="mqtt-broker" name="broker" placeholder="mqtt.example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="mqtt-port">Port</label>
+                            <input type="number" id="mqtt-port" name="port" value="1883" min="1" max="65535">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="mqtt-username">Username (optional)</label>
+                            <input type="text" id="mqtt-username" name="username" placeholder="Username">
+                        </div>
+                        <div class="form-group">
+                            <label for="mqtt-password">Password (optional)</label>
+                            <input type="password" id="mqtt-password" name="password" placeholder="Password">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="mqtt-prefix">Topic Prefix</label>
+                            <input type="text" id="mqtt-prefix" name="prefix" value="esp32modbus" placeholder="esp32modbus">
+                        </div>
+                        <div class="form-group">
+                            <label for="mqtt-interval">Publish Interval (seconds)</label>
+                            <input type="number" id="mqtt-interval" name="publish_interval" value="30" min="5" max="3600">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save MQTT Settings</button>
+                </form>
+            </section>
+            
+            <section class="device-card">
+                <div class="section-header">
+                    <h2 class="section-title">Home Assistant Integration</h2>
+                </div>
+                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">
+                    When MQTT is enabled and configured, this device will automatically publish
+                    Home Assistant discovery messages for all configured Modbus registers.
+                    Each register will appear as a sensor, switch (for writable coils), or number entity
+                    (for writable registers) in Home Assistant.
+                </p>
+                <p style="color: rgba(255,255,255,0.7); line-height: 1.6; margin-top: 12px;">
+                    <strong>Note:</strong> Make sure your MQTT broker is configured in Home Assistant
+                    for auto-discovery to work.
+                </p>
+            </section>
+        </main>
+
+        <footer>
+            <p>ESP32 Modbus Reader</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = '/api/mqtt';
+        
+        async function loadMqttConfig() {
+            try {
+                const response = await fetch(API_BASE + '/config');
+                const data = await response.json();
+                
+                document.getElementById('mqtt-enabled').checked = data.enabled;
+                document.getElementById('mqtt-broker').value = data.broker || '';
+                document.getElementById('mqtt-port').value = data.port || 1883;
+                document.getElementById('mqtt-username').value = data.username || '';
+                document.getElementById('mqtt-password').value = '';
+                document.getElementById('mqtt-prefix').value = data.prefix || 'esp32modbus';
+                document.getElementById('mqtt-interval').value = data.publish_interval || 30;
+                
+                updateStatus(data.connected);
+            } catch (error) {
+                console.error('Failed to load MQTT config:', error);
+                showNotification('Failed to load MQTT config', 'error');
+            }
+        }
+        
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('mqtt-status');
+            if (connected) {
+                statusEl.className = 'mqtt-status connected';
+                statusEl.innerHTML = '<span class="status-dot connected"></span><span>Connected</span>';
+            } else {
+                statusEl.className = 'mqtt-status disconnected';
+                statusEl.innerHTML = '<span class="status-dot disconnected"></span><span>Disconnected</span>';
+            }
+        }
+        
+        async function saveMqttConfig(event) {
+            event.preventDefault();
+            
+            const config = {
+                enabled: document.getElementById('mqtt-enabled').checked,
+                broker: document.getElementById('mqtt-broker').value,
+                port: parseInt(document.getElementById('mqtt-port').value),
+                username: document.getElementById('mqtt-username').value,
+                password: document.getElementById('mqtt-password').value,
+                prefix: document.getElementById('mqtt-prefix').value,
+                publish_interval: parseInt(document.getElementById('mqtt-interval').value)
+            };
+            
+            try {
+                const response = await fetch(API_BASE + '/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    showNotification('MQTT settings saved successfully!', 'success');
+                } else {
+                    showNotification('Failed to save MQTT settings', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to save MQTT config:', error);
+                showNotification('Failed to save MQTT settings', 'error');
+            }
+        }
+        
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            if (!container) {
+                const notificationContainer = document.createElement('div');
+                notificationContainer.id = 'notification-container';
+                document.body.appendChild(notificationContainer);
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = message;
+            
+            const containerEl = document.getElementById('notification-container');
+            containerEl.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('notification-show');
+            }, 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('notification-show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        document.getElementById('mqtt-form').addEventListener('submit', saveMqttConfig);
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMqttConfig();
+        });
+        
+        setInterval(loadMqttConfig, 5000);
+    </script>
+</body>
+</html>

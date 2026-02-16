@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
@@ -8,6 +9,7 @@
 #include "web_server.h"
 #include "modbus_devices.h"
 #include "modbus_manager.h"
+#include "mqtt_client.h"
 
 static const char *TAG = "APP";
 
@@ -38,6 +40,17 @@ void app_main(void)
 
     ESP_ERROR_CHECK(web_server_start());
     ESP_LOGI(TAG, "Web server started");
+
+    ESP_ERROR_CHECK(mqtt_client_init());
+    ESP_LOGI(TAG, "MQTT client initialized");
+    
+    mqtt_config_t mqtt_cfg;
+    if (nvs_load_mqtt_config(&mqtt_cfg) == ESP_OK && mqtt_cfg.enabled) {
+        if (strlen(mqtt_cfg.broker) > 0) {
+            ESP_ERROR_CHECK(mqtt_client_start(&mqtt_cfg));
+            ESP_LOGI(TAG, "MQTT client started");
+        }
+    }
 
     ESP_LOGI(TAG, "ESP32 WiFi Manager with Modbus is running");
 
