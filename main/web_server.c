@@ -347,8 +347,8 @@ static esp_err_t api_delete_device_handler(httpd_req_t *req)
         device_id_str = extract_query_value(url_buf, "device_id");
         if (device_id_str != NULL) {
             uint8_t device_id = atoi(device_id_str);
-            if (device_id < 1 || device_id > 247) {
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device ID: must be 1-247");
+            if (device_id > 247) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device ID: must be 0-247");
                 free(device_id_str);
                 return ESP_FAIL;
             }
@@ -400,9 +400,9 @@ static esp_err_t api_post_register_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
     ESP_LOGI(TAG, "POST /api/modbus/registers: device_id = %d", device_id->valueint);
-    if (device_id->valueint < 1 || device_id->valueint > 247) {
-        ESP_LOGE(TAG, "POST /api/modbus/registers: Invalid device_id %d (must be 1-247)", device_id->valueint);
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device_id: must be 1-247");
+    if (device_id->valueint > 247) {
+        ESP_LOGE(TAG, "POST /api/modbus/registers: Invalid device_id %d (must be 0-247)", device_id->valueint);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device_id: must be 0-247");
         cJSON_Delete(root);
         return ESP_FAIL;
     }
@@ -512,8 +512,8 @@ static esp_err_t api_delete_register_handler(httpd_req_t *req)
             uint8_t device_id = atoi(device_id_str);
             uint16_t address = atoi(address_str);
             
-            if (device_id < 1 || device_id > 247) {
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device ID: must be 1-247");
+            if (device_id > 247) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device ID: must be 0-247");
                 free(device_id_str);
                 free(address_str);
                 return ESP_FAIL;
@@ -566,8 +566,8 @@ static esp_err_t api_post_write_handler(httpd_req_t *req)
             uint8_t device_id = atoi(device_id_str);
             uint16_t address = atoi(address_str);
             
-            if (device_id < 1 || device_id > 247) {
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device ID: must be 1-247");
+            if (device_id > 247) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device ID: must be 0-247");
                 free(device_id_str);
                 free(address_str);
                 return ESP_FAIL;
