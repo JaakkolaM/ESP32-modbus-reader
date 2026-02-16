@@ -47,6 +47,24 @@
             position: relative;
             z-index: 1;
         }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 1;
+        }
+        .section-title {
+            font-size: 1.25em;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.98);
+            background: linear-gradient(135deg, #fff 0%, #93C5FD 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
         .device-title {
             font-size: 1.25em;
             font-weight: 700;
@@ -384,8 +402,10 @@
         </header>
 
         <main>
-            <section class="card">
-                <h2>Add New Device</h2>
+            <section class="device-card">
+                <div class="section-header">
+                    <h2 class="section-title">Add New Device</h2>
+                </div>
                 <form id="add-device-form">
                     <div class="form-row">
                         <div class="form-group">
@@ -430,6 +450,7 @@
                     </div>
                     <button type="submit" class="btn btn-primary">Add Device</button>
                 </form>
+                </div>
             </section>
 
             <section class="tabs">
@@ -442,8 +463,10 @@
             </div>
 
             <div id="presets-tab" class="tab-content">
-                <section class="card">
-                    <h2>Device Presets</h2>
+                <section class="device-card">
+                    <div class="section-header">
+                        <h2 class="section-title">Device Presets</h2>
+                    </div>
                     <div class="form-row">
                         <button class="btn btn-secondary" onclick="addPreset('eairmd')">Add eAirMD</button>
                         <button class="btn btn-secondary" onclick="addPreset('ewind')">Add eWind</button>
