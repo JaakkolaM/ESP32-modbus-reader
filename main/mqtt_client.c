@@ -5,6 +5,7 @@
 #include "esp_wifi.h"
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 static const char *TAG = "MQTT_CLIENT";
 
