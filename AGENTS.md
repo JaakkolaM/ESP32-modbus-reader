@@ -36,6 +36,36 @@ idf.py set-target esp32c3
 idf.py menuconfig
 ```
 
+## Git Workflow Rules
+
+### Commit and Push Guidelines
+- **NEVER commit or push to GitHub unless explicitly asked by the user**
+- When committing, **ALWAYS push to GitHub immediately after** - do not wait for separate push command
+- Always read existing documentation before making changes
+- Update relevant documentation files BEFORE any commit:
+  - `docs/README.md` - Main documentation
+  - `docs/IMPLEMENTATION_SUMMARY.md` - Implementation notes
+  - `AGENTS.md` - Agent guidelines (if updating this file)
+  - `README.md` - User-facing documentation
+- When asked to commit:
+  1. Run `git status` to review changes
+  2. Run `git diff` to verify changes
+  3. Stage only relevant files with `git add`
+  4. Check `git status` to verify staged files
+  5. Create meaningful commit message following project history style
+  6. Commit with `git commit`
+  7. **Automatically push with `git push origin main`** (or requested branch)
+- Check for `*.backup` files and `.backup` patterns in `.gitignore`
+
+### Example Commit Message Style
+```
+v1.x.y: Feature description
+
+- Fixed specific bug in modbus_devices.c
+- Added new function with error handling
+- Updated documentation in docs/README.md
+```
+
 ## Code Style Guidelines
 
 ### Imports and Includes
