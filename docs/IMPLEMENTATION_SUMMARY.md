@@ -8,6 +8,51 @@ Successfully implemented full Modbus RTU read/write functionality with web-based
 
 ## Version History
 
+### v1.3.1 (2026-02-16) - NVS Key Length Fix
+
+**Bug Fixes:**
+
+1. **NVS Key Names Too Long**
+   - ESP32 NVS has maximum key length of 15 characters
+   - Previous keys like `device_0_poll_interval` (22 chars) failed with `ESP_ERR_NVS_KEY_TOO_LONG`
+   - All device and register data failed to save, causing persistence issues
+
+2. **Key Name Shortening**
+   - Changed all NVS key names to ≤15 characters:
+     - `device_%d_id` → `d%d_id`
+     - `device_%d_name` → `d%d_name`
+     - `device_%d_desc` → `d%d_desc`
+     - `device_%d_poll_interval` → `d%d_poll`
+     - `device_%d_enabled` → `d%d_en`
+     - `device_%d_baudrate` → `d%d_baud`
+     - `device_%d_reg_count` → `d%d_rc`
+     - `device_%d_reg_%d_addr` → `d%dr%da`
+     - `device_%d_reg_%d_type` → `d%dr%dt`
+     - `device_%d_reg_%d_name` → `d%dr%dn`
+     - `device_%d_reg_%d_unit` → `d%dr%du`
+     - `device_%d_reg_%d_scale` → `d%dr%ds`
+     - `device_%d_reg_%d_offset` → `d%dr%do`
+     - `device_%d_reg_%d_writable` → `d%dr%dw`
+     - `device_%d_reg_%d_desc` → `d%dr%dd`
+   - Updated all log messages to use new key names for consistency
+
+**Technical Details:**
+
+- Changed `char key[32]` to `char key[16]` to enforce 15-char limit
+- All keys now fit within ESP32 NVS 15-character limit
+- Abbreviation scheme: `d{device}_{field}` for device fields, `d{device}r{register}{field}` for registers
+
+**Files Modified:**
+- main/modbus_devices.c: Shortened all NVS key names in save() and load()
+- AGENTS.md: Added NVS key length warning with abbreviation scheme
+
+**Testing:**
+- ✅ All keys now ≤15 characters
+- ✅ NVS save operations succeed without ESP_ERR_NVS_KEY_TOO_LONG
+- ✅ Device and register data persists across reboots
+
+---
+
 ### v1.3.0 (2026-02-16) - NVS Data Persistence Fix
 
 **Bug Fixes:**

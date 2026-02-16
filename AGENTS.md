@@ -291,6 +291,9 @@ xTaskCreate(polling_task, "polling", 4096, NULL, 5, NULL);
 
 #### NVS Storage
 - Namespace: `"modbus_config"` for devices, `"wifi_config"` for WiFi
+- **Critical: NVS key names MUST be ≤15 characters** (ESP32 limitation)
+- Use abbreviated key names: `d%d_id` (device 0 ID), `d%dr%da` (device 0 register 0 address)
+- Key format: `d{device}_{field}` or `d{device}r{register}{field}` where field is abbreviated (id, name, desc, poll, en, baud, rc, a, t, n, u, s, o, w, d)
 - Always check `nvs_get_*()` return values
 - Call `nvs_commit()` before `nvs_close()` for writes
 - Provide safe defaults when reads fail

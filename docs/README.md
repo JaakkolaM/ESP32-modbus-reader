@@ -586,7 +586,10 @@ This project follows ESP-IDF coding conventions:
 
 **Solution:**
 
-The v1.3 release fixed NVS data persistence issues with comprehensive error handling:
+The v1.3.1 release fixed NVS data persistence by shortening key names:
+- ESP32 NVS has maximum key length of 15 characters
+- Previous keys like `device_0_poll_interval` (22 chars) failed with `ESP_ERR_NVS_KEY_TOO_LONG`
+- All keys shortened to ≤15 chars: `d%d_id`, `d%d_name`, `d%d_rc`, `d%dr%da`, etc.
 - All NVS read operations now check return values
 - Safe default values applied when reads fail
 - Detailed logging shows which data loaded successfully vs failed
@@ -594,11 +597,12 @@ The v1.3 release fixed NVS data persistence issues with comprehensive error hand
 
 **Verification:**
 1. Add a device via web interface
-2. Power cycle the ESP32
+2. Power cycle ESP32
 3. Check serial monitor for: `Loaded X device(s) from NVS successfully`
 4. Verify device configuration appears correctly in web interface
 
 If you still see data loss:
+- Check for `ESP_ERR_NVS_KEY_TOO_LONG` errors in serial monitor
 - Check for warning logs: `W (XXXXX) MODBUS_DEVICES: Failed to read...`
 - Verify NVS partition size in sdkconfig (default 12KB should be sufficient)
 - Try clearing and reconfiguring: Click "Clear Devices" button in web interface
@@ -710,23 +714,17 @@ I (12345) MODBUS_MANAGER: ATTEMPT 1/3: DevID=1, FC=0x02, Addr=0, Result=OK
 
 ## Roadmap
 
- ### Version 1.2 (Current - 2025-02-04)
+### Version 1.3 (Current - 2026-02-16)
 
-- ✅ Fixed discrete input (Type 2) Modbus function code bug - now uses correct FC 0x02 instead of FC 0x01
-- ✅ Fixed register address validation to allow same address with different types (e.g., DI and DO can both use address 0)
-- ✅ Fixed HTML form missing `name` attribute on device_id hidden input (prevented register addition)
-- ✅ Added comprehensive input validation to all API handlers
-- ✅ Improved error messages with specific validation feedback
-- ✅ Fixed REST API endpoint conflicts using query parameters
-- ✅ Updated frontend to use query parameter-based API calls
-- ✅ Enhanced device creation validation (device_id range 1-247, baudrate validation, etc.)
-- ✅ Enhanced register creation validation (address range, type validation, etc.)
-- ✅ Enhanced write operation validation
-- ✅ Fixed DELETE device endpoint to use query parameters
-- ✅ Fixed DELETE register endpoint to use query parameters
-- ✅ Fixed write register endpoint to use query parameters
-- 📋 Added device documentation for Ebyte M31-AXAX8080G (8DI+8DO)
-- 📝 Planned: Enhanced Modbus communication logging (send/receive frame dumps, timing info, attempt tracking)
+- ✅ Fixed NVS key names too long causing ESP_ERR_NVS_KEY_TOO_LONG
+- ✅ Shortened all NVS keys to ≤15 characters (ESP32 limit)
+- ✅ Fixed NVS data persistence bug with error handling and safe defaults
+- ✅ Added comprehensive error handling for all NVS read operations
+- ✅ Added detailed logging for NVS save/load operations
+- ✅ Fixed corrupted modbus_devices_load() function
+- ✅ Fixed syntax errors and undefined variables
+- 📝 Planned: MQTT integration
+- 📝 Planned: Historical data logging
 
 ### Version 1.1 (2025-01-29)
 
@@ -948,7 +946,15 @@ This project is licensed under MIT License - see [LICENSE](LICENSE) file for det
 - Modbus RTU write: ~50ms
 - Dashboard refresh: ~500-1000ms
 
- ## Changelog
+  ## Changelog
+
+### Version 1.3.1 (2026-02-16)
+
+- Fixed NVS key names too long causing ESP_ERR_NVS_KEY_TOO_LONG
+- Shortened all NVS keys to ≤15 characters (ESP32 limit: `d%d_id`, `d%d_name`, etc.)
+- Fixed all device and register persistence across reboots
+- Updated AGENTS.md with NVS key length warning
+- Updated documentation with key abbreviation scheme
 
 ### Version 1.2.0 (2025-02-03)
 

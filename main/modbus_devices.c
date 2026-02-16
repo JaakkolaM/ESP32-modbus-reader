@@ -40,98 +40,98 @@ esp_err_t modbus_devices_save(void)
         return err;
     }
 
-    char key[32];
+    char key[16];
     for (uint8_t i = 0; i < device_count; i++) {
-        snprintf(key, sizeof(key), "device_%d_id", i);
+        snprintf(key, sizeof(key), "d%d_id", i);
         err = nvs_set_u8(nvs_handle, key, devices[i].device_id);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save device_%d_id: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to save d%d_id: %s", i, esp_err_to_name(err));
         }
 
-        snprintf(key, sizeof(key), "device_%d_name", i);
+        snprintf(key, sizeof(key), "d%d_name", i);
         err = nvs_set_str(nvs_handle, key, devices[i].name);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save device_%d_name: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to save d%d_name: %s", i, esp_err_to_name(err));
         }
 
-        snprintf(key, sizeof(key), "device_%d_desc", i);
+        snprintf(key, sizeof(key), "d%d_desc", i);
         err = nvs_set_str(nvs_handle, key, devices[i].description);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save device_%d_desc: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to save d%d_desc: %s", i, esp_err_to_name(err));
         }
 
-        snprintf(key, sizeof(key), "device_%d_poll_interval", i);
+        snprintf(key, sizeof(key), "d%d_poll", i);
         err = nvs_set_u32(nvs_handle, key, devices[i].poll_interval_ms);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save device_%d_poll_interval: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to save d%d_poll: %s", i, esp_err_to_name(err));
         }
 
-        snprintf(key, sizeof(key), "device_%d_enabled", i);
+        snprintf(key, sizeof(key), "d%d_en", i);
         err = nvs_set_u8(nvs_handle, key, devices[i].enabled);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save device_%d_enabled: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to save d%d_en: %s", i, esp_err_to_name(err));
         }
 
-        snprintf(key, sizeof(key), "device_%d_baudrate", i);
+        snprintf(key, sizeof(key), "d%d_baud", i);
         err = nvs_set_u16(nvs_handle, key, devices[i].baudrate);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save device_%d_baudrate: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to save d%d_baud: %s", i, esp_err_to_name(err));
         }
 
-        snprintf(key, sizeof(key), "device_%d_reg_count", i);
+        snprintf(key, sizeof(key), "d%d_rc", i);
         err = nvs_set_u8(nvs_handle, key, devices[i].register_count);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save device_%d_reg_count: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to save d%d_rc: %s", i, esp_err_to_name(err));
         }
 
         ESP_LOGI(TAG, "Saving %d register(s) for device %d", devices[i].register_count, i);
         for (uint8_t j = 0; j < devices[i].register_count; j++) {
-            snprintf(key, sizeof(key), "device_%d_reg_%d_addr", i, j);
+            snprintf(key, sizeof(key), "d%dr%da", i, j);
             err = nvs_set_u16(nvs_handle, key, devices[i].registers[j].address);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_addr: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%da: %s", i, j, esp_err_to_name(err));
             }
 
-            snprintf(key, sizeof(key), "device_%d_reg_%d_type", i, j);
+            snprintf(key, sizeof(key), "d%dr%dt", i, j);
             err = nvs_set_u8(nvs_handle, key, devices[i].registers[j].type);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_type: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%dt: %s", i, j, esp_err_to_name(err));
             }
 
-            snprintf(key, sizeof(key), "device_%d_reg_%d_name", i, j);
+            snprintf(key, sizeof(key), "d%dr%dn", i, j);
             err = nvs_set_str(nvs_handle, key, devices[i].registers[j].name);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_name: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%dn: %s", i, j, esp_err_to_name(err));
             }
 
-            snprintf(key, sizeof(key), "device_%d_reg_%d_unit", i, j);
+            snprintf(key, sizeof(key), "d%dr%du", i, j);
             err = nvs_set_str(nvs_handle, key, devices[i].registers[j].unit);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_unit: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%du: %s", i, j, esp_err_to_name(err));
             }
 
-            snprintf(key, sizeof(key), "device_%d_reg_%d_scale", i, j);
+            snprintf(key, sizeof(key), "d%dr%ds", i, j);
             err = nvs_set_u32(nvs_handle, key, *(uint32_t*)&devices[i].registers[j].scale);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_scale: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%ds: %s", i, j, esp_err_to_name(err));
             }
 
-            snprintf(key, sizeof(key), "device_%d_reg_%d_offset", i, j);
+            snprintf(key, sizeof(key), "d%dr%do", i, j);
             err = nvs_set_u32(nvs_handle, key, *(uint32_t*)&devices[i].registers[j].offset);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_offset: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%do: %s", i, j, esp_err_to_name(err));
             }
 
-            snprintf(key, sizeof(key), "device_%d_reg_%d_writable", i, j);
+            snprintf(key, sizeof(key), "d%dr%dw", i, j);
             err = nvs_set_u8(nvs_handle, key, devices[i].registers[j].writable);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_writable: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%dw: %s", i, j, esp_err_to_name(err));
             }
 
-            snprintf(key, sizeof(key), "device_%d_reg_%d_desc", i, j);
+            snprintf(key, sizeof(key), "d%dr%dd", i, j);
             err = nvs_set_str(nvs_handle, key, devices[i].registers[j].description);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to save device_%d_reg_%d_desc: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to save d%dr%dd: %s", i, j, esp_err_to_name(err));
             }
         }
     }
@@ -174,65 +174,65 @@ esp_err_t modbus_devices_load(void)
         ESP_LOGW(TAG, "Device count exceeds maximum, limiting to %d", MAX_MODBUS_DEVICES);
     }
     
-    char key[32];
+    char key[16];
     bool load_success = true;
     
     for (uint8_t i = 0; i < device_count; i++) {
-        snprintf(key, sizeof(key), "device_%d_id", i);
+        snprintf(key, sizeof(key), "d%d_id", i);
         err = nvs_get_u8(nvs_handle, key, &devices[i].device_id);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to read device ID for device_%d: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to read d%d_id: %s", i, esp_err_to_name(err));
             devices[i].device_id = i;
             load_success = false;
         }
         
-        snprintf(key, sizeof(key), "device_%d_name", i);
+        snprintf(key, sizeof(key), "d%d_name", i);
         size_t len = sizeof(devices[i].name);
         err = nvs_get_str(nvs_handle, key, devices[i].name, &len);
         if (err != ESP_OK || len == 0) {
-            ESP_LOGE(TAG, "Failed to read name for device_%d: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to read d%d_name: %s", i, esp_err_to_name(err));
             memset(devices[i].name, 0, sizeof(devices[i].name));
             strcpy(devices[i].name, "Unnamed Device");
             load_success = false;
         }
         
-        snprintf(key, sizeof(key), "device_%d_desc", i);
+        snprintf(key, sizeof(key), "d%d_desc", i);
         len = sizeof(devices[i].description);
         err = nvs_get_str(nvs_handle, key, devices[i].description, &len);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to read description for device_%d: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to read d%d_desc: %s", i, esp_err_to_name(err));
             memset(devices[i].description, 0, sizeof(devices[i].description));
             load_success = false;
         }
         
-        snprintf(key, sizeof(key), "device_%d_poll_interval", i);
+        snprintf(key, sizeof(key), "d%d_poll", i);
         err = nvs_get_u32(nvs_handle, key, &devices[i].poll_interval_ms);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to read poll interval for device_%d: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to read d%d_poll: %s", i, esp_err_to_name(err));
             devices[i].poll_interval_ms = 5000;
             load_success = false;
         }
         
-        snprintf(key, sizeof(key), "device_%d_enabled", i);
+        snprintf(key, sizeof(key), "d%d_en", i);
         err = nvs_get_u8(nvs_handle, key, (uint8_t*)&devices[i].enabled);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to read enabled for device_%d: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to read d%d_en: %s", i, esp_err_to_name(err));
             devices[i].enabled = 1;
             load_success = false;
         }
         
-        snprintf(key, sizeof(key), "device_%d_baudrate", i);
+        snprintf(key, sizeof(key), "d%d_baud", i);
         err = nvs_get_u16(nvs_handle, key, &devices[i].baudrate);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to read baudrate for device_%d: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to read d%d_baud: %s", i, esp_err_to_name(err));
             devices[i].baudrate = 9600;
             load_success = false;
         }
         
-        snprintf(key, sizeof(key), "device_%d_reg_count", i);
+        snprintf(key, sizeof(key), "d%d_rc", i);
         err = nvs_get_u8(nvs_handle, key, &devices[i].register_count);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to read register count for device_%d: %s", i, esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to read d%d_rc: %s", i, esp_err_to_name(err));
             devices[i].register_count = 0;
             load_success = false;
         }
@@ -245,42 +245,42 @@ esp_err_t modbus_devices_load(void)
         ESP_LOGI(TAG, "Loading %d register(s) for device %d", devices[i].register_count, i);
         
         for (uint8_t j = 0; j < devices[i].register_count; j++) {
-            snprintf(key, sizeof(key), "device_%d_reg_%d_addr", i, j);
+            snprintf(key, sizeof(key), "d%dr%da", i, j);
             err = nvs_get_u16(nvs_handle, key, &devices[i].registers[j].address);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to read address for device_%d reg_%d: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to read d%dr%da: %s", i, j, esp_err_to_name(err));
                 load_success = false;
             }
             
-            snprintf(key, sizeof(key), "device_%d_reg_%d_type", i, j);
+            snprintf(key, sizeof(key), "d%dr%dt", i, j);
             uint8_t type;
             err = nvs_get_u8(nvs_handle, key, &type);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to read type for device_%d reg_%d: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to read d%dr%dt: %s", i, j, esp_err_to_name(err));
                 devices[i].registers[j].type = REGISTER_TYPE_HOLDING;
                 load_success = false;
             } else {
                 devices[i].registers[j].type = (register_type_t)type;
             }
             
-            snprintf(key, sizeof(key), "device_%d_reg_%d_name", i, j);
+            snprintf(key, sizeof(key), "d%dr%dn", i, j);
             len = sizeof(devices[i].registers[j].name);
             err = nvs_get_str(nvs_handle, key, devices[i].registers[j].name, &len);
             if (err != ESP_OK || len == 0) {
-                ESP_LOGE(TAG, "Failed to read name for device_%d reg_%d: %s", i, j, esp_err_to_name(err));
+                ESP_LOGE(TAG, "Failed to read d%dr%dn: %s", i, j, esp_err_to_name(err));
                 memset(devices[i].registers[j].name, 0, sizeof(devices[i].registers[j].name));
                 strcpy(devices[i].registers[j].name, "Unnamed");
                 load_success = false;
             }
             
-            snprintf(key, sizeof(key), "device_%d_reg_%d_unit", i, j);
+            snprintf(key, sizeof(key), "d%dr%du", i, j);
             len = sizeof(devices[i].registers[j].unit);
             err = nvs_get_str(nvs_handle, key, devices[i].registers[j].unit, &len);
             if (err != ESP_OK) {
                 memset(devices[i].registers[j].unit, 0, sizeof(devices[i].registers[j].unit));
             }
             
-            snprintf(key, sizeof(key), "device_%d_reg_%d_scale", i, j);
+            snprintf(key, sizeof(key), "d%dr%ds", i, j);
             uint32_t scale_val;
             err = nvs_get_u32(nvs_handle, key, &scale_val);
             if (err == ESP_OK) {
@@ -289,7 +289,7 @@ esp_err_t modbus_devices_load(void)
                 devices[i].registers[j].scale = 1.0;
             }
             
-            snprintf(key, sizeof(key), "device_%d_reg_%d_offset", i, j);
+            snprintf(key, sizeof(key), "d%dr%do", i, j);
             uint32_t offset_val;
             err = nvs_get_u32(nvs_handle, key, &offset_val);
             if (err == ESP_OK) {
@@ -298,13 +298,13 @@ esp_err_t modbus_devices_load(void)
                 devices[i].registers[j].offset = 0.0;
             }
             
-            snprintf(key, sizeof(key), "device_%d_reg_%d_writable", i, j);
+            snprintf(key, sizeof(key), "d%dr%dw", i, j);
             err = nvs_get_u8(nvs_handle, key, (uint8_t*)&devices[i].registers[j].writable);
             if (err != ESP_OK) {
                 devices[i].registers[j].writable = 0;
             }
             
-            snprintf(key, sizeof(key), "device_%d_reg_%d_desc", i, j);
+            snprintf(key, sizeof(key), "d%dr%dd", i, j);
             len = sizeof(devices[i].registers[j].description);
             err = nvs_get_str(nvs_handle, key, devices[i].registers[j].description, &len);
             if (err != ESP_OK) {
