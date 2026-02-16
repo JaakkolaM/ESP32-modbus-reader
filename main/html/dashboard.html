@@ -8,14 +8,14 @@
     <style>
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 24px;
-            margin-top: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
         }
         .value-card {
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 24px;
+            border-radius: 10px;
+            padding: 8px 12px;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid rgba(255, 255, 255, 0.12);
             backdrop-filter: blur(20px);
@@ -45,9 +45,9 @@
             opacity: 1;
         }
         .value-label {
-            font-size: 0.9em;
+            font-size: 0.7em;
             color: rgba(255, 255, 255, 0.65);
-            margin-bottom: 8px;
+            margin-bottom: 2px;
             letter-spacing: 0.5px;
             text-transform: uppercase;
             font-weight: 600;
@@ -55,7 +55,7 @@
             z-index: 1;
         }
         .value-display {
-            font-size: 2.2em;
+            font-size: 1.4em;
             font-weight: 800;
             color: rgba(255, 255, 255, 0.98);
             background: linear-gradient(135deg, #fff 0%, #93C5FD 50%, #60A5FA 100%);
@@ -66,14 +66,14 @@
             z-index: 1;
         }
         .value-unit {
-            font-size: 0.6em;
+            font-size: 0.5em;
             color: rgba(255, 255, 255, 0.5);
-            margin-left: 6px;
+            margin-left: 4px;
         }
         .value-timestamp {
-            font-size: 0.8em;
+            font-size: 0.65em;
             color: rgba(255, 255, 255, 0.45);
-            margin-top: 10px;
+            margin-top: 4px;
             position: relative;
             z-index: 1;
         }
@@ -133,15 +133,16 @@
             right: 24px;
         }
         .write-input {
-            width: 110px;
-            padding: 10px 14px;
-            margin-right: 10px;
+            width: 80px;
+            padding: 6px 10px;
+            margin-right: 8px;
             border: 2px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.05);
             color: rgba(255, 255, 255, 0.95);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-weight: 500;
+            font-size: 0.9em;
         }
         .write-input:focus {
             outline: none;
@@ -202,7 +203,7 @@
         <header>
             <h1>Modbus Dashboard</h1>
             <nav>
-                <a href="/index.html" class="btn btn-secondary">WiFi Config</a>
+                <a href="/" class="btn btn-secondary">WiFi Config</a>
                 <a href="/modbus.html" class="btn btn-primary">Device Config</a>
             </nav>
         </header>

@@ -73,7 +73,12 @@ static esp_err_t get_static_file_handler(httpd_req_t *req)
     const char *file_start;
     const char *file_end;
 
-    if (strcmp(uri, "/style.css") == 0) {
+    if (strcmp(uri, "/index.html") == 0 || strcmp(uri, "/") == 0) {
+        filename = "index.html";
+        content_type = "text/html";
+        file_start = index_html_start;
+        file_end = index_html_end;
+    } else if (strcmp(uri, "/style.css") == 0) {
         filename = "style.css";
         content_type = "text/css";
         file_start = style_css_start;

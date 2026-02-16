@@ -182,14 +182,16 @@ function renderDevices(devices) {
                                 <td>${getRegisterTypeName(reg.type)}</td>
                                 <td>${reg.name}</td>
                                 <td>${reg.writable ? `
-                                    <input type="number" class="write-input" 
-                                           id="write-${device.device_id}-${reg.address}"
-                                           value="${scaledValue(reg.last_value, reg.scale, reg.offset)}"
-                                           ${reg.writable ? '' : 'disabled'}>
-                                    <button class="btn btn-sm btn-primary" 
-                                            onclick="writeRegister(${device.device_id}, ${reg.address})">
-                                        Write
-                                    </button>
+                                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                                        <input type="number" class="write-input" 
+                                               id="write-${device.device_id}-${reg.address}"
+                                               value="${scaledValue(reg.last_value, reg.scale, reg.offset)}"
+                                               ${reg.writable ? '' : 'disabled'}>
+                                        <button class="btn btn-sm btn-primary" 
+                                                onclick="writeRegister(${device.device_id}, ${reg.address})">
+                                            Write
+                                        </button>
+                                    </div>
                                 ` : scaledValue(reg.last_value, reg.scale, reg.offset)}
                                 </td>
                                 <td>${reg.unit || ''}</td>
