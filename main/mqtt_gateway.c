@@ -16,6 +16,7 @@ static mqtt_register_write_cb_t write_callback = NULL;
 static bool mqtt_initialized = false;
 
 static void mqtt_parse_set_message(const char *topic, const char *payload);
+static void mqtt_subscribe_to_registers(void);
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -36,6 +37,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         mqtt_client_publish_lwt(true);
         mqtt_client_publish_discovery();
         mqtt_client_publish_all_registers();
+        mqtt_subscribe_to_registers();
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -125,7 +127,16 @@ static void mqtt_parse_set_message(const char *topic, const char *payload)
     uint8_t device_id;
     uint16_t address;
     if (sscanf(topic_ptr, "%hhu/%hu/set", &device_id, &address) == 2) {
-        uint16_t value = atoi(payload);
+        uint16_t value;
+
+        if (strcasecmp(payload, "ON") == 0) {
+            value = 1;
+        } else if (strcasecmp(payload, "OFF") == 0) {
+            value = 0;
+        } else {
+            value = atoi(payload);
+        }
+
         ESP_LOGI(TAG, "MQTT set: device=%u, address=%u, value=%u", (unsigned int)device_id, (unsigned int)address, (unsigned int)value);
         
         if (write_callback != NULL) {

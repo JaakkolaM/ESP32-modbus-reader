@@ -22,6 +22,7 @@ static TaskHandle_t polling_task_handle = NULL;
 static volatile bool polling_active = false;
 static volatile uint32_t last_error = 0;
 static bool modbus_logging_enabled = false;
+static SemaphoreHandle_t modbus_mutex = NULL;
 
 static void log_hex_dump(const uint8_t *data, uint16_t len)
 {
@@ -160,6 +161,16 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
 {
     int64_t transaction_start = esp_timer_get_time();
 
+    if (modbus_mutex == NULL) {
+        ESP_LOGE(TAG, "Modbus mutex not initialized");
+        return MODBUS_RESULT_NOT_INITIALIZED;
+    }
+
+    if (xSemaphoreTake(modbus_mutex, portMAX_DELAY) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to take Modbus mutex");
+        return MODBUS_RESULT_NOT_INITIALIZED;
+    }
+
     uint8_t request_frame[MODBUS_MAX_FRAME_LEN];
     uint16_t request_len = 0;
     modbus_response_t response;
@@ -172,6 +183,7 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
                                         data, data_len, request_frame, &request_len);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to build request frame");
+        xSemaphoreGive(modbus_mutex);
         return MODBUS_RESULT_INVALID_RESPONSE;
     }
 
@@ -219,6 +231,7 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
                   device_id, function, retry + 1, total_time);
 
         last_error = 0;
+        xSemaphoreGive(modbus_mutex);
         return MODBUS_RESULT_OK;
     }
 
@@ -226,6 +239,7 @@ static modbus_result_t execute_modbus_transaction(uint8_t device_id, uint8_t fun
     ESP_LOGE(TAG, "TRANSACTION FAILED: DevID=%d, FC=0x%02X, Attempts=%d, Total Time=%lld ms",
               device_id, function, modbus_config.retry_attempts, total_time);
 
+    xSemaphoreGive(modbus_mutex);
     return result;
 }
 
@@ -246,6 +260,12 @@ esp_err_t modbus_manager_init(modbus_config_t *config)
         modbus_config.retry_attempts = MODBUS_MAX_RETRY_ATTEMPTS;
     } else {
         memcpy(&modbus_config, config, sizeof(modbus_config_t));
+    }
+
+    modbus_mutex = xSemaphoreCreateMutex();
+    if (modbus_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create Modbus mutex");
+        return ESP_ERR_NO_MEM;
     }
 
     gpio_init();
@@ -272,6 +292,11 @@ esp_err_t modbus_manager_deinit(void)
 
     if (polling_active) {
         modbus_manager_stop_polling();
+    }
+
+    if (modbus_mutex != NULL) {
+        vSemaphoreDelete(modbus_mutex);
+        modbus_mutex = NULL;
     }
 
     uart_driver_delete(UART_NUM);
