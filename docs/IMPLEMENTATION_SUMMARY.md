@@ -4,9 +4,74 @@
 
 ## Overview
 
-Successfully implemented full Modbus RTU read/write functionality with MQTT support and Home Assistant auto-discovery for ESP32-C3.
+Successfully implemented full Modbus RTU read/write functionality with MQTT support and Home Assistant auto-discovery for ESP32-C3. Fixed MQTT write functionality and Modbus bus contention issues.
 
 ## Version History
+
+### v1.4.2 (2026-02-17) - MQTT Write Fixes & Bus Contention
+
+**Bug Fixes:**
+
+1. **MQTT Write Functionality**
+    - Added `mqtt_subscribe_to_registers()` call in `mqtt_event_handler()` on MQTT_EVENT_CONNECTED
+    - Implemented `mqtt_write_callback()` in main.c to handle Home Assistant write commands from MQTT
+    - Fixed ON/OFF string parsing for coil switches (case-insensitive comparison)
+    - Registered write callback in app_main: `mqtt_client_set_register_write_callback(mqtt_write_callback)`
+
+2. **Modbus Bus Contention**
+    - Added FreeRTOS mutex (`modbus_transaction_mutex`) in modbus_manager.c
+    - Mutex locks Modbus UART access to prevent polling and MQTT writes from colliding on RS485 bus
+    - Implemented `modbus_acquire_transaction()` and `modbus_release_transaction()`
+    - All Modbus operations now acquire mutex before accessing UART
+
+**Technical Details:**
+
+- MQTT set topics are now automatically subscribed to when client connects
+- MQTT messages on `/set` topics trigger writes to Modbus devices
+- Mutex ensures only one Modbus transaction at a time on RS485 bus
+- Prevents data corruption and communication failures when polling and writes overlap
+- Case-insensitive string comparison for "ON"/"OFF" values
+
+**Files Modified:**
+- main/main.c - Added mqtt_write_callback() implementation and registration
+- main/modbus_manager.c - Added mutex for transaction serialization
+- main/mqtt_gateway.c - Added mqtt_subscribe_to_registers() call
+
+**Testing:**
+- ✅ MQTT write commands from Home Assistant now work correctly
+- ✅ No bus contention issues between polling and writes
+- ✅ ON/OFF switches work reliably via MQTT
+
+---
+
+### v1.4.1 (2026-02-17) - MQTT Client Start & Form Refresh
+
+**Bug Fixes:**
+
+1. **MQTT Client Start**
+    - Fixed `mqtt_client_update_config()` to properly start MQTT client when first enabled via web UI
+    - Added check: if mqtt_client is NULL when enabling, start new client instead of stopping non-existent client
+
+2. **Form Refresh**
+    - Fixed form values being overwritten by periodic status refresh
+    - Added separate `loadMqttStatus()` function for status-only updates (does not overwrite form fields)
+    - Separated status loading (connection state) from config loading (form values)
+
+**Technical Details:**
+
+- Previous implementation called `loadMqttConfig()` during periodic refresh, which overwrote user input
+- New implementation:
+  - `loadMqttConfig()` - loads MQTT configuration into form fields (called once on page load)
+  - `loadMqttStatus()` - updates only connection status indicator (called periodically)
+
+**Files Modified:**
+- main/mqtt_gateway.c - Fixed mqtt_client_update_config() logic
+- main/html/mqtt.html - Added loadMqttStatus() function, separated status updates
+
+**Testing:**
+- ⏳ MQTT connection fix not yet tested
+
+---
 
 ### v1.4.0 (2026-02-17) - MQTT Integration
 

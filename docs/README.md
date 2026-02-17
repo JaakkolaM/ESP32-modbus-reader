@@ -715,8 +715,14 @@ I (12345) MODBUS_MANAGER: ATTEMPT 1/3: DevID=1, FC=0x02, Addr=0, Result=OK
 
 ## Roadmap
 
-### Version 1.4 (Current - 2026-02-17)
+### Version 1.4.2 (Current - 2026-02-17)
 
+- ✅ Fixed MQTT write functionality with proper subscription to set topics
+- ✅ Added FreeRTOS mutex to prevent Modbus bus contention between polling and MQTT writes
+- ✅ Implemented mqtt_write_callback() to handle Home Assistant write commands
+- ✅ Fixed ON/OFF string parsing for coil switches in MQTT messages
+- ✅ Fixed MQTT client start when first enabled via web UI
+- ✅ Fixed form values being overwritten by periodic status refresh
 - ✅ MQTT support with Home Assistant auto-discovery
 - ✅ MQTT configuration page at `/mqtt`
 - ✅ Configurable broker, port, username, password, topic prefix
@@ -728,6 +734,11 @@ I (12345) MODBUS_MANAGER: ATTEMPT 1/3: DevID=1, FC=0x02, Addr=0, Result=OK
 - ✅ Custom partition table for larger app (2MB factory partition)
 - ✅ Fixed HTTP server URI handler limit
 - 📝 Planned: Historical data logging
+
+### Version 1.4.1 (2026-02-17)
+
+- ✅ Fixed MQTT client start and form refresh issues
+- ✅ Separate loadMqttStatus() function for status-only updates to prevent form overwrite
 
 ### Version 1.1 (2025-01-29)
 
@@ -950,6 +961,38 @@ This project is licensed under MIT License - see [LICENSE](LICENSE) file for det
 - Dashboard refresh: ~500-1000ms
 
   ## Changelog
+
+### Version 1.4.2 (2026-02-17)
+
+- Fixed MQTT write functionality by adding proper subscription to set topics
+- Implemented mqtt_write_callback() to handle Home Assistant write commands from MQTT
+- Added FreeRTOS mutex (modbus_transaction_mutex) to serialize Modbus transactions
+- Fixed ON/OFF string parsing for coil switches (case-insensitive comparison)
+- Fixed MQTT client start when first enabled via web UI
+- Prevents polling and MQTT writes from colliding on RS485 bus
+- Updated AGENTS.md with MQTT integration guidelines
+
+### Version 1.4.1 (2026-02-17)
+
+- Fixed mqtt_client_update_config to start MQTT when first enabled via web UI
+- Fixed form values being overwritten by periodic status refresh in MQTT config page
+- Added separate loadMqttStatus() function for status-only updates
+- Note: MQTT connection fix not yet tested
+
+### Version 1.4.0 (2026-02-17)
+
+- Added MQTT client support with configurable broker, port, username, password
+- Added Home Assistant auto-discovery for all configured registers
+- Added MQTT configuration page at `/mqtt` with enable/disable toggle
+- Added automatic publish on polling intervals and on value changes
+- Added write capability via MQTT set commands
+- Added Last Will Testament (LWT) for availability tracking
+- Added MQTT status indicator on all web pages
+- Renamed mqtt_client.c/h to mqtt_gateway.c/h to avoid ESP-IDF header conflict
+- Added custom partition table (partitions.csv) with 2MB factory partition
+- Configured 4MB flash size for ESP32-C3
+- Increased HTTP server URI handlers from 20 to 24
+- Added esp_wifi and esp_http_server dependencies to CMakeLists.txt
 
 ### Version 1.3.1 (2026-02-16)
 

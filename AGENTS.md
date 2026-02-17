@@ -359,6 +359,36 @@ idf_component_register(SRCS "main.c" "wifi_manager.c" ...
 - Use `#include <mqtt_client.h>` (angle brackets, mqtt_client.h)
 - NOT `#include "esp_mqtt_client.h"` (older ESP-IDF versions)
 
+### Modbus Transaction Mutex
+- **Critical: All Modbus operations must acquire the mutex before accessing the UART**
+- The `modbus_mutex` (SemaphoreHandle_t) prevents bus contention on RS485
+- Background polling task and external writes (e.g., from MQTT) must not collide
+- Mutex is automatically acquired/released by all modbus_manager functions
+- **When implementing external Modbus operations:**
+  - Call modbus_manager functions (they handle the mutex internally)
+  - Do NOT directly access UART driver - always use modbus_manager API
+  - Example: MQTT writes use `modbus_write_single_coil()` which acquires mutex
+- **Mutex API in modbus_manager.c:**
+  - `xSemaphoreTake(modbus_mutex, portMAX_DELAY)` - Acquire before UART access
+  - `xSemaphoreGive(modbus_mutex)` - Release after UART operation completes
+  - Mutex created in `modbus_manager_init()`, destroyed in `modbus_manager_deinit()`
+
+### MQTT Write Callback Pattern
+- Use callback pattern for external write requests (e.g., from MQTT, web API)
+- Register callback with `mqtt_client_set_register_write_callback()`
+- Callback signature: `void callback(uint8_t device_id, uint16_t address, uint16_t value)`
+- In callback:
+  1. Validate device exists: `modbus_get_device(device_id)`
+  2. Validate register exists: `modbus_get_register(device_id, address)`
+  3. Perform write with appropriate function (handles mutex internally):
+     - Coil: `modbus_write_single_coil(device_id, address, bool_value)`
+     - Holding register: `modbus_write_single_register(device_id, address, value)`
+  4. Update local cache: `modbus_update_register_value(device_id, address, value)`
+  5. Publish new value (if applicable): `mqtt_client_publish_register(...)`
+- **Case-insensitive string comparison for ON/OFF:**
+  - Use `strcasecmp(payload, "ON")` and `strcasecmp(payload, "OFF")`
+  - Convert non-zero values to ON, zero to OFF
+
 ### Partition Tables
 - Default factory partition is 1MB - may be too small for larger apps
 - Create `partitions.csv` for custom partition layout:
