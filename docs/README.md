@@ -856,7 +856,23 @@ I (12345) MODBUS_MANAGER: ATTEMPT 1/3: DevID=1, FC=0x02, Addr=0, Result=OK
 
 ## Roadmap
 
-### Version 1.4.2 (Current - 2026-02-17)
+### Version 1.5.0 (Current - 2026-02-18)
+
+- ✅ Added multi-board support system with board-specific configurations
+- ✅ Added WeAct ESP32-D0WD-V3 CAN485DevBoardV1 support
+- ✅ Created board configuration system (boards/ directory with board headers)
+- ✅ Implemented universal build script (build.ps1) with board selection
+- ✅ Created quick-access build scripts for each board
+- ✅ Fixed format specifier issues for cross-board compatibility
+- ✅ Fixed partition table configuration for 2MB factory partition
+- ✅ Added board-specific SDK configuration files
+- ✅ Updated AGENTS.md with board-specific guidelines and troubleshooting
+- ✅ Added WeAct board documentation (docs/devices/WeAct_CAN485DevBoardV1.md)
+- ✅ Fixed CMake BOARD variable to correctly propagate board selection
+- ✅ Added flash instructions after successful build
+- ✅ Updated all documentation (README.md, BUILD_CHECKLIST.md, devices/README.md)
+
+### Version 1.4.2 (2026-02-17)
 
 - ✅ Fixed MQTT write functionality with proper subscription to set topics
 - ✅ Added FreeRTOS mutex to prevent Modbus bus contention between polling and MQTT writes
