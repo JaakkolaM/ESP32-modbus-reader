@@ -500,7 +500,7 @@ static esp_err_t api_post_register_handler(httpd_req_t *req)
     } else if (err == ESP_ERR_NOT_FOUND) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Device not found");
     } else if (err == ESP_ERR_NO_MEM) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Maximum registers (10) reached for device");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Maximum registers (20) reached for device");
     } else if (err == ESP_ERR_INVALID_ARG) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Register address already exists for this device");
     } else {

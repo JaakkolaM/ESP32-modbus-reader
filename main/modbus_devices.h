@@ -6,7 +6,7 @@
 #include "esp_err.h"
 
 #define MAX_MODBUS_DEVICES 1
-#define MAX_REGISTERS_PER_DEVICE 10
+#define MAX_REGISTERS_PER_DEVICE 20
 #define DEVICE_NAME_MAX_LEN 32
 #define DEVICE_DESC_MAX_LEN 64
 

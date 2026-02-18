@@ -46,7 +46,6 @@ static void mqtt_write_callback(uint8_t device_id, uint16_t address, uint16_t va
 
     if (result == MODBUS_RESULT_OK) {
         modbus_update_register_value(device_id, address, value);
-        mqtt_client_publish_register(device_id, device->name, reg);
         ESP_LOGI(TAG, "Successfully wrote to register %d on device %d", address, device_id);
     } else {
         ESP_LOGE(TAG, "Failed to write to register %d on device %d: %s",

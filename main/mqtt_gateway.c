@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include <mqtt_client.h>
 #include "esp_wifi.h"
+#include "board.h"
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -191,11 +192,14 @@ esp_err_t mqtt_client_start(const mqtt_config_t *config)
 
     ESP_LOGI(TAG, "Connecting to MQTT broker: %s", mqtt_uri);
 
+    char lwt_topic[64];
+    snprintf(lwt_topic, sizeof(lwt_topic), "%s/tele/LWT", mqtt_config.prefix);
+
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = mqtt_uri,
         .credentials.client_id = "esp32modbus",
         .session.keepalive = 60,
-        .session.last_will.topic = "esp32modbus/tele/LWT",
+        .session.last_will.topic = lwt_topic,
         .session.last_will.msg = "Offline",
         .session.last_will.qos = 0,
         .session.last_will.retain = true
@@ -330,11 +334,11 @@ esp_err_t mqtt_client_publish_discovery(void)
                     "{\"name\": \"%s\", \"command_topic\": \"%s/%d/%d/set\", "
                     "\"state_topic\": \"%s/%d/%d/state\", "
                     "\"unique_id\": \"%s\", "
-                    "\"device\": {\"name\": \"ESP32 Modbus\", \"identifiers\": \"%s\", \"manufacturer\": \"Custom\", \"model\": \"ESP32-C3\"}}",
+                    "\"device\": {\"name\": \"%s\", \"identifiers\": \"%s\", \"manufacturer\": \"Custom\", \"model\": \"%s\"}}",
                     devices[i].registers[j].name,
                     mqtt_config.prefix, devices[i].device_id, devices[i].registers[j].address,
                     mqtt_config.prefix, devices[i].device_id, devices[i].registers[j].address,
-                    unique_id, device_id);
+                    unique_id, BOARD_NAME, device_id, BOARD_MCU);
             } else if (devices[i].registers[j].writable) {
                 ha_type = "number";
                 snprintf(topic, sizeof(topic), "homeassistant/number/%s/config", unique_id);
@@ -343,11 +347,11 @@ esp_err_t mqtt_client_publish_discovery(void)
                     "\"state_topic\": \"%s/%d/%d/state\", "
                     "\"value_template\": \"{{ value }}\", "
                     "\"unique_id\": \"%s\", "
-                    "\"device\": {\"name\": \"ESP32 Modbus\", \"identifiers\": \"%s\", \"manufacturer\": \"Custom\", \"model\": \"ESP32-C3\"}}",
+                    "\"device\": {\"name\": \"%s\", \"identifiers\": \"%s\", \"manufacturer\": \"Custom\", \"model\": \"%s\"}}",
                     devices[i].registers[j].name,
                     mqtt_config.prefix, devices[i].device_id, devices[i].registers[j].address,
                     mqtt_config.prefix, devices[i].device_id, devices[i].registers[j].address,
-                    unique_id, device_id);
+                    unique_id, BOARD_NAME, device_id, BOARD_MCU);
             } else {
                 ha_type = "sensor";
                 snprintf(topic, sizeof(topic), "homeassistant/sensor/%s/config", unique_id);
@@ -356,11 +360,11 @@ esp_err_t mqtt_client_publish_discovery(void)
                     "\"unit_of_measurement\": \"%s\", "
                     "\"value_template\": \"{{ value }}\", "
                     "\"unique_id\": \"%s\", "
-                    "\"device\": {\"name\": \"ESP32 Modbus\", \"identifiers\": \"%s\", \"manufacturer\": \"Custom\", \"model\": \"ESP32-C3\"}}",
+                    "\"device\": {\"name\": \"%s\", \"identifiers\": \"%s\", \"manufacturer\": \"Custom\", \"model\": \"%s\"}}",
                     devices[i].registers[j].name,
                     mqtt_config.prefix, devices[i].device_id, devices[i].registers[j].address,
                     devices[i].registers[j].unit,
-                    unique_id, device_id);
+                    unique_id, BOARD_NAME, device_id, BOARD_MCU);
             }
 
             int msg_id = esp_mqtt_client_publish(mqtt_client, topic, payload, 0, 1, true);
