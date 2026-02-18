@@ -40,6 +40,22 @@
 - **Solution**: Added navigation links in header section with Device Config and Dashboard buttons
 - **Files Modified**: `html/index.html`
 
+## Board Configuration Verification
+
+### Board-Specific Headers
+✓ `boards/esp32c3_board.h` - ESP32-C3 board definitions
+✓ `boards/weact_esp32_board.h` - WeAct board definitions
+✓ `boards/board.h` - Board selection wrapper
+
+### Board Configuration Files
+✓ `sdkconfig.esp32c3.defaults` - ESP32-C3 SDK config
+✓ `sdkconfig.weact_esp32.defaults` - WeAct SDK config
+
+### Build Scripts
+✓ `build.ps1` - Universal build script with parameters
+✓ `build-esp32c3.ps1` - Quick ESP32-C3 build
+✓ `build-weact.ps1` - Quick WeAct build
+
 ## File Verification
 
 ### Source Files (All Present)
@@ -87,6 +103,80 @@ All issues have been fixed. The project is ready to build.
 
 ### Windows (PowerShell or CMD)
 
+#### Universal Build Script (Recommended)
+1. **Open PowerShell** in project directory
+2. **Run Universal Build Script**:
+
+```powershell
+# For ESP32-C3 (default)
+.\build.ps1 -Board esp32c3
+
+# For WeAct board
+.\build.ps1 -Board weact
+
+# With options
+.\build.ps1 -Board weact -Clean -Flash -Monitor
+```
+
+**Available Parameters:**
+- `-Board esp32c3|weact` - Select board (default: esp32c3)
+- `-Clean` - Full clean before build
+- `-Flash` - Flash after build
+- `-Monitor` - Open serial monitor after flash
+- `-Port COMx` - Specify serial port (auto-detect if omitted)
+
+#### Quick Access Scripts
+```powershell
+.\build-esp32c3.ps1    # ESP32-C3 incremental build
+.\build-weact.ps1        # WeAct incremental build
+```
+
+#### Manual Build
+1. **Select SDK Config** (copy appropriate defaults file):
+   ```powershell
+   # For ESP32-C3
+   copy sdkconfig.esp32c3.defaults sdkconfig
+
+   # For WeAct board
+   copy sdkconfig.weact_esp32.defaults sdkconfig
+   ```
+
+2. **Activate ESP-IDF**:
+   ```powershell
+   C:\Users\jaakk\esp\v5.1.6\esp-idf\export.bat
+   ```
+
+3. **Set Target**:
+   ```powershell
+   # ESP32-C3
+   idf.py set-target esp32c3
+
+   # WeAct board
+   idf.py set-target esp32
+   ```
+
+4. **Build**:
+   ```powershell
+   idf.py build
+   ```
+
+#### Board Switching
+
+When switching between boards:
+
+1. **Build will automatically handle target change**
+   - ESP-IDF detects target mismatch and reconfigures
+   - No manual cleanup needed
+
+2. **Shared build directory** (`build/`)
+   - Both boards use same build folder
+   - Small rebuild penalty when switching (~10-30 seconds)
+
+3. **Configuration persistence**
+   - Previous `sdkconfig` saved as `sdkconfig.prev`
+   - Board-specific defaults used automatically
+
+#### Legacy Build Script (Backward Compatible)
 1. **Open Command Prompt** in project directory:
    ```
    cd "C:\Users\jaakk\DIY projects\Microcontroller codes\ESP32 modbus reader"

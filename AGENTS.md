@@ -4,21 +4,65 @@ This file provides build commands and code style guidelines for agentic coding a
 
 ## Build Commands
 
-### Full Build
+### Universal Build (PowerShell)
+```powershell
+# For ESP32-C3 (default)
+.\build.ps1 -Board esp32c3
+
+# For WeAct ESP32-D0WD-V3
+.\build.ps1 -Board weact
+
+# With options
+.\build.ps1 -Board esp32c3 -Clean -Flash -Monitor
+```
+
+**Parameters:**
+- `-Board esp32c3|weact` - Select board (default: esp32c3)
+- `-Clean` - Full clean before build
+- `-Flash` - Flash after build
+- `-Monitor` - Open serial monitor after flash
+- `-Port COMx` - Specify serial port (auto-detect if omitted)
+
+### Quick Access Build Scripts
+```powershell
+.\build-esp32c3.ps1    # ESP32-C3 incremental build
+.\build-weact.ps1        # WeAct incremental build
+```
+
+### Manual Build Steps
+
+#### For ESP32-C3
 ```bash
 cd "C:\Users\jaakk\DIY projects\Microcontroller codes\ESP32 modbus reader"
+copy sdkconfig.esp32c3.defaults sdkconfig
+idf.py set-target esp32c3
+idf.py build
+```
+
+#### For WeAct ESP32-D0WD-V3
+```bash
+cd "C:\Users\jaakk\DIY projects\Microcontroller codes\ESP32 modbus reader"
+copy sdkconfig.weact_esp32.defaults sdkconfig
+idf.py set-target esp32
 idf.py build
 ```
 
 ### Clean Build
-```bash
-idf.py fullclean
-idf.py build
+```powershell
+# ESP32-C3
+.\build.ps1 -Board esp32c3 -Clean
+
+# WeAct
+.\build.ps1 -Board weact -Clean
 ```
 
 ### Flash and Monitor
-```bash
-idf.py -p COMX flash monitor
+```powershell
+# Auto-detect COM port
+.\build.ps1 -Board esp32c3 -Flash -Monitor
+
+# Specify COM port
+.\build.ps1 -Board weact -Flash -Port COM3 -Monitor
 ```
 
 ### Monitor Only
@@ -26,15 +70,145 @@ idf.py -p COMX flash monitor
 idf.py -p COMX monitor
 ```
 
-### Set Target
-```bash
-idf.py set-target esp32c3
-```
-
 ### Configuration
 ```bash
 idf.py menuconfig
 ```
+
+### Set Target
+```bash
+# ESP32-C3
+idf.py set-target esp32c3
+
+# WeAct ESP32-D0WD-V3
+idf.py set-target esp32
+```
+
+## Board-Specific Guidelines
+
+### Board Configuration System
+
+This project supports multiple hardware boards through board-specific configuration headers:
+
+**Supported Boards:**
+- **ESP32-C3** (Seeed Studio XIAO, Espressif DevKitM-1) - Default target
+- **WeAct ESP32-D0WD-V3 CAN485DevBoardV1** - Industrial dual-core board
+
+**Board Configuration Files:**
+- `boards/esp32c3_board.h` - ESP32-C3 definitions (RISC-V, single-core, 4MB flash)
+- `boards/weact_esp32_board.h` - WeAct definitions (Xtensa, dual-core, 8MB flash)
+- `boards/board.h` - Board selection wrapper (includes appropriate header based on BOARD define)
+
+**Build-Time Board Selection:**
+- Use CMake BOARD variable: `idf.py -D BOARD=weact build`
+- Build scripts automatically set BOARD define via compile flags
+- Default: `BOARD=esp32c3` if not specified
+
+### Pin Configuration
+
+#### ESP32-C3 Default Pins
+```c
+#define MODBUS_TX_PIN 21
+#define MODBUS_RX_PIN 20
+#define MODBUS_DE_PIN 7
+#define MODBUS_RE_PIN 6
+```
+
+#### WeAct ESP32-D0WD-V3 Default Pins
+```c
+#define MODBUS_TX_PIN 22
+#define MODBUS_RX_PIN 21
+#define MODBUS_DE_PIN 17
+#define MODBUS_RE_PIN 17 // Tied to DE on board
+```
+
+**Note:** All board-specific pins are defined in respective `boards/*_board.h` files and included via `boards/board.h`.
+
+### Modbus RS485 Configuration
+
+Both boards use UART_NUM_1 for RS485:
+- Baudrate: 9600 bps (default, configurable)
+- Data bits: 8
+- Stop bits: 1
+- Parity: None
+- Timeout: 1000ms
+- Retry attempts: 3
+
+**WeAct Board Notes:**
+- DE and RE pins are tied together (GPIO17)
+- Set GPIO17 HIGH to transmit, LOW to receive
+- RS485 transceiver is 2.5kV galvanically isolated from ESP32
+- Recommended for industrial environments with electrical noise
+
+### SDK Configuration Files
+
+Use board-specific defaults files for clean configuration:
+
+- **ESP32-C3:** `sdkconfig.esp32c3.defaults`
+  - Target: ESP32-C3
+  - Flash: 4MB
+  - FreeRTOS: Single-core mode
+  - Architecture: RISC-V
+
+- **WeAct ESP32:** `sdkconfig.weact_esp32.defaults`
+  - Target: ESP32
+  - Flash: 8MB
+  - FreeRTOS: Dual-core mode
+  - Architecture: Xtensa
+
+**Build scripts automatically copy appropriate defaults to `sdkconfig` before building.**
+
+### Adding New Boards
+
+To add support for a new hardware board:
+
+1. **Create board header:**
+   ```c
+   // boards/newboard_board.h
+   #ifndef NEWBOARD_BOARD_H
+   #define NEWBOARD_BOARD_H
+
+   #define BOARD_NAME "New Board Name"
+   #define BOARD_TARGET "esp32"  // or "esp32c3", "esp32s3"
+   #define BOARD_MCU "ESP32-..."
+   #define BOARD_ARCH "Xtensa"  // or "RISC-V"
+   #define BOARD_CORES 2
+
+   #define BOARD_FLASH_SIZE_4MB  // or 8MB, 16MB
+
+   // Pin definitions
+   #define MODBUS_TX_PIN X
+   #define MODBUS_RX_PIN X
+   #define MODBUS_DE_PIN X
+   #define MODBUS_RE_PIN X
+
+   #define DEFAULT_BAUDRATE 9600
+
+   #endif
+   ```
+
+2. **Add to `boards/board.h`:**
+   ```c
+   #ifdef BOARD_NEWBOARD
+   #include "newboard_board.h"
+   #elif defined(BOARD_ESP32C3)
+   ...
+   ```
+
+3. **Create SDK defaults:** `sdkconfig.newboard.defaults`
+
+4. **Update `main/CMakeLists.txt`:**
+   ```cmake
+   set_property(CACHE BOARD PROPERTY STRINGS "esp32c3" "weact_esp32" "newboard")
+
+   if(BOARD STREQUAL "newboard")
+       target_compile_definitions(${COMPONENT_LIB} PRIVATE BOARD_NEWBOARD)
+   endif()
+   ```
+
+5. **Update build scripts** to recognize new board
+
+6. **Add documentation** in `docs/devices/` with pinouts, features, integration guide
 
 ## Git Workflow Rules
 
@@ -226,6 +400,32 @@ buffer = NULL;
 - Macros in CAPS_SNAKE_CASE
 - Parenthesize macro parameters
 
+### Format Specifiers (Critical for ESP32)
+- **NEVER use `PRIu32` or `PRIu16` with `int` type variables**
+- **ALWAYS match format specifier to actual data type:**
+  - `int` → `%d`
+  - `uint32_t` → `PRIu32`
+  - `int32_t` → `PRId32`
+  - `uint16_t` → `PRIu16`
+- **Common pitfall:** Board configuration pins stored as `int` in structs, logged with `PRIu32` → COMPILER ERROR
+- **Build flag `-Werror=format`** treats format warnings as errors
+- **Solution:** Use `%d` for `int` types, `PRIu32` for `uint32_t` types
+- **ALWAYS include `<inttypes.h>`** when using `PRI` macros (but they're auto-included by ESP-IDF logging)
+
+**Example:**
+```c
+typedef struct {
+    int pin;           // int type
+    uint32_t value;   // uint32_t type
+} config_t;
+
+ESP_LOGI(TAG, "Pin=%d", config.pin);           // CORRECT - uses %d for int
+ESP_LOGI(TAG, "Value=%" PRIu32, config.value); // CORRECT - uses PRIu32 for uint32_t
+
+// WRONG - will fail with -Werror=format
+ESP_LOGI(TAG, "Pin=%" PRIu32, config.pin); // ERROR: PRIu32 expects uint32_t, got int
+```
+
 ```c
 #define MAX_DEVICES 4
 #define DEFAULT_TIMEOUT_MS 1000
@@ -289,7 +489,82 @@ xTaskCreate(polling_task, "polling", 4096, NULL, 5, NULL);
 
 ### Project-Specific Guidelines
 
-#### NVS Storage
+#### Partition Table Issues
+
+**ERROR: app partition is too small for binary**
+```
+Error: app partition is too small for binary esp32-modbus-reader.bin size 0x107a00
+```
+
+**Root Cause:**
+- `idf.py set-target` regenerates sdkconfig with default partition (1MB)
+- Binary size (0x107a00 = 1,078,016 bytes ≈ 1.04MB) exceeds 1MB partition
+- Custom partition configuration may be overridden by target defaults
+
+**Solution:**
+1. Use custom partitions.csv with 2MB factory partition (see above)
+2. Build.ps1 automatically re-applies board config after `idf.py set-target`
+   - `idf.py set-target` overwrites sdkconfig with default target settings
+   - Build.ps1 re-copies board-specific config after set-target
+3. For WeAct board (8MB flash), force 8MB flash size config
+4. Manual fix: Edit sdkconfig to set `CONFIG_PARTITION_TABLE_CUSTOM=y`
+
+**Verification:**
+```bash
+grep "PARTITION" sdkconfig
+# Should show: CONFIG_PARTITION_TABLE_CUSTOM=y
+# Should NOT show: CONFIG_PARTITION_TABLE_SINGLE_APP=y
+
+grep "FLASHSIZE" sdkconfig
+# For WeAct: CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+# For ESP32-C3: CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+```
+
+**IMPORTANT: `idf.py set-target` MUST be followed by board config re-apply**
+- The set-target command overwrites sdkconfig with default target settings
+- Build.ps1 automatically re-applies board-specific config after set-target
+- If implementing custom build scripts, always copy board defaults AFTER set-target
+
+### NVS Storage
+
+### Format Specifier Issues (ESP32 Specific)
+
+**ERROR Pattern:**
+```
+HINT: The issue is better to resolve by replacing format specifiers to 'PRI'-family macros (include <inttypes.h> header file).
+```
+
+**Common Causes:**
+
+1. **Using PRIu32 with int type:**
+   ```c
+   int pin = 21;
+   ESP_LOGI(TAG, "Pin=%" PRIu32, pin); // ERROR: expects uint32_t, got int
+   ```
+
+2. **Using %d with uint32_t type:**
+   ```c
+   uint32_t value = 100;
+   ESP_LOGI(TAG, "Value=%d", value); // ERROR on some platforms
+   ```
+
+**Solution: Match specifier to type**
+```c
+// For int types
+int pin;
+ESP_LOGI(TAG, "Pin=%d", pin);
+
+// For uint32_t types
+uint32_t value;
+ESP_LOGI(TAG, "Value=%" PRIu32, value);
+```
+
+**ESP-IDF Logging:**
+- Always includes `<inttypes.h>` automatically
+- Use `PRI` macros only for fixed-width integer types (uint32_t, int32_t, etc.)
+- Use `%d` for regular `int` types
+
+**Note:** `idf.py set-target` may change architecture (RISC-V ↔ Xtensa), requiring format specifier fixes.
 - Namespace: `"modbus_config"` for devices, `"wifi_config"` for WiFi
 - **Critical: NVS key names MUST be ≤15 characters** (ESP32 limitation)
 - Use abbreviated key names: `d%d_id` (device 0 ID), `d%dr%da` (device 0 register 0 address)
@@ -390,14 +665,45 @@ idf_component_register(SRCS "main.c" "wifi_manager.c" ...
   - Convert non-zero values to ON, zero to OFF
 
 ### Partition Tables
-- Default factory partition is 1MB - may be too small for larger apps
-- Create `partitions.csv` for custom partition layout:
+
+**CRITICAL ERROR PATTERN:**
+```
+Error: app partition is too small for binary esp32-modbus-reader.bin size 0x107a00
+```
+**Solution:** See "Partition Table Configuration" section below.
+
+#### Default vs Custom Partition Tables
+- **Default factory partition:** 1MB - too small for this project
+- **Custom factory partition:** 2MB - required for this project's firmware size
+- **Error trigger:** Binary size exceeds 1MB (0x100000 bytes)
+
+#### Partition Table Configuration
+Create `partitions.csv` for custom 2MB partition layout:
 ```csv
 # Name,   Type, SubType, Offset,   Size, Flags
 nvs,      data, nvs,     0x9000,   0x6000,
 phy_init, data, phy,     0xf000,   0x1000,
 factory,  app,  factory, 0x10000,  0x200000,
 ```
+
+**Configure in sdkconfig:**
+```
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_SINGLE_APP=n
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+```
+
+**Build Script Behavior:**
+- Build.ps1 automatically applies custom partition config after `idf.py set-target`
+- For WeAct board, script edits sdkconfig to force CUSTOM partition
+- If error persists, manually set: `idf.py menuconfig` → Partition Table → Custom
+
+**Troubleshooting:**
+1. Check `sdkconfig` for: `CONFIG_PARTITION_TABLE_SINGLE_APP=n`
+2. Check `sdkconfig` for: `CONFIG_PARTITION_TABLE_CUSTOM=y`
+3. Verify `partitions.csv` exists in project root
+4. Run `idf.py fullclean` if config won't apply
 - Add to `sdkconfig.defaults`:
 ```
 CONFIG_PARTITION_TABLE_CUSTOM=y

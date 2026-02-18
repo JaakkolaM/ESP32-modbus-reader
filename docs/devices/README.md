@@ -1,6 +1,29 @@
 # Enervent HVAC Device Documentation
 
-This directory contains detailed Modbus register documentation for Enervent HVAC ventilation systems.
+This directory contains detailed Modbus register documentation for Enervent HVAC ventilation systems and development boards.
+
+## Development Boards
+
+### [WeAct CAN485DevBoardV1_ESP32](WeAct_CAN485DevBoardV1.md)
+Industrial development board with dual-core ESP32-D0WD-V3, 8MB flash, 2.5kV isolated RS485 and CAN interfaces.
+
+- **Architecture**: Xtensa dual-core (more powerful than ESP32-C3)
+- **Flash**: 8MB (double ESP32-C3 capacity)
+- **RS485**: 2.5kV galvanically isolated, TX=GPIO22, RX=GPIO21, DE=GPIO17
+- **CAN**: 2.5kV isolated transceiver (not currently used)
+- **TF Card**: SPI interface for SD card (not currently used)
+- **Documentation**: [WeAct Board Guide](WeAct_CAN485DevBoardV1.md)
+- **Build**: `.\build-weact.ps1`
+
+**Comparison:**
+| Feature | WeAct ESP32-D0WD | ESP32-C3 (XIAO) |
+|---------|-------------------|-------------------|
+| Cores | 2 (Xtensa) | 1 (RISC-V) |
+| Flash | 8MB | 4MB |
+| Isolation | 2.5kV on RS485 | Depends on module |
+| CAN Bus | Yes | No |
+| TF Card | Yes | No |
+| Form Factor | Industrial (55mm x 40mm) | Compact (XIAO) |
 
 ## Available Devices
 

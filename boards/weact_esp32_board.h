@@ -1,0 +1,42 @@
+#ifndef WEACT_ESP32_BOARD_H
+#define WEACT_ESP32_BOARD_H
+
+#define BOARD_NAME "WeAct ESP32-D0WD-V3"
+#define BOARD_TARGET "esp32"
+#define BOARD_MCU "ESP32-D0WD-V3"
+#define BOARD_ARCH "Xtensa"
+#define BOARD_CORES 2
+
+#define BOARD_FLASH_SIZE_8MB
+
+#define BOARD_MODBUS_TX_PIN 22
+#define BOARD_MODBUS_RX_PIN 21
+#define BOARD_MODBUS_DE_PIN 17
+#define BOARD_MODBUS_RE_PIN 17
+
+#define BOARD_DEFAULT_BAUDRATE 9600
+
+#define BOARD_DEFAULT_WIFI_MODE_AP true
+#define BOARD_DEFAULT_AP_SSID "ESP32-Config"
+#define BOARD_DEFAULT_AP_PASSWORD "config123"
+
+#define BOARD_HAS_CAN true
+#define BOARD_CAN_RX_PIN 26
+#define BOARD_CAN_TX_PIN 27
+
+#define BOARD_HAS_TF_CARD true
+#define BOARD_TF_CS_PIN 13
+#define BOARD_TF_SCK_PIN 14
+#define BOARD_TF_MOSI_PIN 15
+#define BOARD_TF_MISO_PIN 2
+
+#define BOARD_HAS_LED true
+#define BOARD_LED_PIN 4
+
+#define BOARD_HAS_KEY true
+#define BOARD_KEY_PIN 0
+
+#define BOARD_HAS_VIN_MONITOR true
+#define BOARD_VIN_PIN 36
+
+#endif

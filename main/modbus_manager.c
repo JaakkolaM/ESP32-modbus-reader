@@ -61,7 +61,7 @@ static void uart_init(void)
                                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 0, NULL, 0));
 
-    ESP_LOGI(TAG, "UART initialized: TX=%" PRIu32 ", RX=%" PRIu32 ", Baud=%d",
+    ESP_LOGI(TAG, "UART initialized: TX=%d, RX=%d, Baud=%d",
               modbus_config.tx_pin, modbus_config.rx_pin, modbus_config.baudrate);
 }
 
@@ -80,7 +80,7 @@ static void gpio_init(void)
     gpio_set_level(modbus_config.de_pin, 0);
     gpio_set_level(modbus_config.re_pin, 0);
 
-    ESP_LOGI(TAG, "GPIO initialized: DE=%" PRIu32 ", RE=%" PRIu32, modbus_config.de_pin, modbus_config.re_pin);
+    ESP_LOGI(TAG, "GPIO initialized: DE=%d, RE=%d", modbus_config.de_pin, modbus_config.re_pin);
 }
 
 static void set_transmit_mode(void)

@@ -79,11 +79,50 @@ A complete Modbus RTU gateway for ESP32-C3 microcontrollers with WiFi connectivi
 
 - **Computer**: Windows, Linux, or macOS with development tools
 
-### Supported Devices
+### Supported Boards
+
+#### ESP32-C3 Boards (Default)
+- **Seeed Studio XIAO ESP32C3** - Development board (current target)
+- **Espressif ESP32-C3-DevKitM-1** - Official dev kit
+- Any ESP32-C3 based development board
+
+**Specifications:**
+- Architecture: RISC-V single-core
+- Flash: 4MB
+- RS485 Pins: TX=GPIO21, RX=GPIO20, DE=GPIO7, RE=GPIO6
+
+#### WeAct ESP32-D0WD-V3 CAN485DevBoardV1
+- **WeAct Studio CAN485DevBoardV1_ESP32** - Industrial development board
+
+**Specifications:**
+- Architecture: Xtensa dual-core
+- Flash: 8MB
+- Features: 2.5kV isolated CAN + RS485, TF Card, WS2812 LED
+- RS485 Pins: TX=GPIO22, RX=GPIO21, DE=GPIO17 (DE/RE tied together)
+
+**Documentation:** See `docs/devices/WeAct_CAN485DevBoardV1.md` for complete details.
+
+#### Board Selection
+
+By default, the project builds for ESP32-C3. To build for WeAct board:
+
+```powershell
+.\build-weact.ps1           # Quick WeAct build
+.\build.ps1 -Board weact    # Universal build script
+.\build.ps1 -Board weact -Clean -Flash -Monitor  # Full clean build with flash
+```
+
+To switch back to ESP32-C3:
+```powershell
+.\build-esp32c3.ps1
+```
+
+### Supported Modbus Devices
 
 - Seeed Studio ESP32-C3 series
 - Espressif ESP32-C3-DevKitM-1
 - Any ESP32-C3 based development board
+- Any ESP32 or ESP32-C3 based development board
 - Any Modbus RTU compliant device
 
 ## Software Requirements
@@ -421,16 +460,26 @@ curl http://<device-ip>/api/modbus/1/read/holding/0x100/10
 
 ```
 ESP32-modbus-reader/
+├── boards/                       # NEW: Board-specific configurations
+│   ├── esp32c3_board.h         # ESP32-C3 pinouts and settings
+│   ├── weact_esp32_board.h     # WeAct board pinouts and settings
+│   └── board.h                # Board selection wrapper
 ├── CMakeLists.txt                 # Main CMake configuration
 ├── .gitignore                     # Git ignore rules
-├── build.bat                      # Build script (Windows)
-├── build.ps1                      # Build script (PowerShell)
+├── build.bat                      # Build script (Windows, backward compatibility)
+├── build.ps1                      # NEW: Universal build script with parameters
+├── build-esp32c3.ps1             # NEW: Quick ESP32-C3 build
+├── build-weact.ps1                # NEW: Quick WeAct build
 ├── run_install.bat                # Install script
+├── sdkconfig.esp32c3.defaults    # NEW: ESP32-C3 SDK config
+├── sdkconfig.weact_esp32.defaults # NEW: WeAct SDK config
 ├── docs/
 │   ├── PLAN.md                    # Detailed implementation plan
 │   ├── README.md                  # This file
+│   ├── BUILD_CHECKLIST.md         # Build verification checklist
 │   └── devices/                  # Device documentation
 │       ├── README.md              # Device documentation template
+│       ├── WeAct_CAN485DevBoardV1.md # NEW: WeAct board documentation
 │       ├── MAX485_RS485_Module.md # MAX485 TTL to RS485 module docs
 │       ├── XIAO_ESP32C3_Getting_Started.md # XIAO ESP32C3 guide
 │       ├── eairmd.md              # eAirMD device documentation
@@ -548,19 +597,111 @@ ESP32-modbus-reader/
 
 ### Building from Source
 
-```bash
-# Clean previous build
-idf.py fullclean
+#### Building for Specific Boards
 
-# Set target
-idf.py set-target esp32c3
-
-# Build
-idf.py build
-
-# Flash and monitor
-idf.py -p COM3 flash monitor
+##### ESP32-C3 (Default)
+```powershell
+.\build-esp32c3.ps1
 ```
+
+Or manual:
+```bash
+idf.py set-target esp32c3
+idf.py build
+```
+
+##### WeAct ESP32-D0WD-V3
+```powershell
+.\build-weact.ps1
+```
+
+Or manual:
+```bash
+idf.py set-target esp32
+idf.py build
+```
+
+#### Build Options
+
+Using the universal build script with parameters:
+
+```powershell
+# Incremental build (fast, keeps cached files)
+.\build.ps1 -Board esp32c3
+
+# Full clean build
+.\build.ps1 -Board weact -Clean
+
+# Build and flash
+.\build.ps1 -Board weact -Flash
+
+# Build, flash and monitor
+.\build.ps1 -Board weact -Flash -Monitor
+
+# Specify COM port
+.\build.ps1 -Board weact -Flash -Port COM3
+```
+
+**Universal Script Parameters:**
+- `-Board esp32c3|weact` - Select board (default: esp32c3)
+- `-Clean` - Full clean before build
+- `-Flash` - Flash after build
+- `-Monitor` - Open serial monitor after flash
+- `-Port COMx` - Specify serial port (auto-detect if omitted)
+
+#### Quick Access Scripts
+
+```powershell
+.\build-esp32c3.ps1    # ESP32-C3 incremental build
+.\build-weact.ps1        # WeAct incremental build
+```
+
+#### Manual Build Steps
+
+If you prefer manual builds:
+
+1. **Select SDK Config** (copy appropriate defaults file):
+   ```powershell
+   # For ESP32-C3
+   copy sdkconfig.esp32c3.defaults sdkconfig
+
+   # For WeAct board
+   copy sdkconfig.weact_esp32.defaults sdkconfig
+   ```
+
+2. **Activate ESP-IDF**:
+   ```powershell
+   C:\Users\jaakk\esp\v5.1.6\esp-idf\export.bat
+   ```
+
+3. **Set Target**:
+   ```powershell
+   # ESP32-C3
+   idf.py set-target esp32c3
+
+   # WeAct board
+   idf.py set-target esp32
+   ```
+
+4. **Build**:
+   ```powershell
+   idf.py build
+   ```
+
+5. **Flash and Monitor**:
+   ```bash
+   idf.py -p COM3 flash monitor
+   ```
+
+### Debugging
+
+Enable verbose logging:
+
+```bash
+idf.py menuconfig
+```
+
+Navigate to: Component config → Log output → Default log verbosity → Debug
 
 ### Debugging
 

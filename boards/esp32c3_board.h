@@ -1,0 +1,29 @@
+#ifndef ESP32C3_BOARD_H
+#define ESP32C3_BOARD_H
+
+#define BOARD_NAME "ESP32-C3"
+#define BOARD_TARGET "esp32c3"
+#define BOARD_MCU "ESP32-C3-WROOM-02"
+#define BOARD_ARCH "RISC-V"
+#define BOARD_CORES 1
+
+#define BOARD_FLASH_SIZE_4MB
+
+#define BOARD_MODBUS_TX_PIN 21
+#define BOARD_MODBUS_RX_PIN 20
+#define BOARD_MODBUS_DE_PIN 7
+#define BOARD_MODBUS_RE_PIN 6
+
+#define BOARD_DEFAULT_BAUDRATE 9600
+
+#define BOARD_DEFAULT_WIFI_MODE_AP true
+#define BOARD_DEFAULT_AP_SSID "ESP32-Config"
+#define BOARD_DEFAULT_AP_PASSWORD "config123"
+
+#define BOARD_HAS_CAN false
+#define BOARD_HAS_TF_CARD false
+#define BOARD_HAS_LED false
+#define BOARD_HAS_KEY false
+#define BOARD_HAS_VIN_MONITOR false
+
+#endif
