@@ -99,11 +99,66 @@ function getRegisterTypeName(type) {
     }
 }
 
+function openEditDeviceModal(deviceId) {
+    apiCall('/devices').then(devices => {
+        const device = devices.find(d => d.device_id === deviceId);
+        if (!device) {
+            showNotification('Device not found!', 'error');
+            return;
+        }
+
+        document.getElementById('edit-device-original-id').value = device.device_id;
+        document.getElementById('edit-device-id').value = device.device_id;
+        document.getElementById('edit-device-name').value = device.name;
+        document.getElementById('edit-device-desc').value = device.description || '';
+        document.getElementById('edit-poll-interval').value = device.poll_interval_ms;
+        document.getElementById('edit-baudrate').value = device.baudrate;
+        document.getElementById('edit-parity').value = device.parity || 0;
+        document.getElementById('edit-device-enabled').checked = device.enabled;
+
+        document.getElementById('edit-device-modal').style.display = 'block';
+    }).catch(error => {
+        showNotification('Failed to load device: ' + error.message, 'error');
+    });
+}
+
+function closeEditDeviceModal() {
+    document.getElementById('edit-device-modal').style.display = 'none';
+    document.getElementById('edit-device-form').reset();
+}
+
+async function updateDevice(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+
+    const originalId = parseInt(formData.get('original_device_id'));
+    const newId = parseInt(formData.get('device_id'));
+
+    const device = {
+        device_id: newId,
+        name: formData.get('name'),
+        description: formData.get('description'),
+        poll_interval_ms: parseInt(formData.get('poll_interval')),
+        baudrate: parseInt(formData.get('baudrate')),
+        parity: parseInt(formData.get('parity')),
+        enabled: formData.get('enabled') === 'on'
+    };
+
+    try {
+        await apiCall(`/devices?device_id=${originalId}`, 'PUT', device);
+        closeEditDeviceModal();
+        loadDevices();
+        showNotification('Device updated successfully!', 'success');
+    } catch (error) {
+        showNotification('Failed to update device: ' + error.message, 'error');
+    }
+}
+
 function showTab(tabName) {
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    event.target.classList.add('active');
+
     document.getElementById(`${tabName}-tab`).classList.add('active');
 }
 
@@ -118,8 +173,11 @@ function closeModal() {
 }
 
 async function loadDevices() {
+    console.log('loadDevices called');
     try {
         const devices = await apiCall('/devices');
+        console.log('Devices loaded:', devices);
+        console.log('Number of devices:', devices.length);
         renderDevices(devices);
     } catch (error) {
         console.error('Failed to load devices:', error);
@@ -128,13 +186,20 @@ async function loadDevices() {
 }
 
 function renderDevices(devices) {
+    console.log('renderDevices called with:', devices);
     const container = document.getElementById('devices-list');
-    if (!container) return;
-
+    if (!container) {
+        console.log('devices-list container not found!');
+        return;
+    }
+    
     if (devices.length === 0) {
+        console.log('No devices to render');
         container.innerHTML = '<div class="card"><p>No devices configured. Add a device above or use presets.</p></div>';
         return;
     }
+    
+    console.log('Rendering devices...');
 
     container.innerHTML = devices.map(device => `
         <div class="device-card">
@@ -151,11 +216,15 @@ function renderDevices(devices) {
             </div>
             <div style="margin-bottom: 15px; font-size: 0.9em; color: #6b7280;">
                 <span>Baudrate: ${device.baudrate}</span> |
+                <span>Parity: ${device.parity === 0 ? 'None' : 'Even'}</span> |
                 <span>Poll Interval: ${device.poll_interval_ms}ms</span> |
                 <span>Polls: ${device.poll_count}</span> |
                 <span>Errors: ${device.error_count}</span>
             </div>
             <div>
+                <button class="btn btn-sm btn-secondary" onclick="openEditDeviceModal(${device.device_id})">
+                    Edit Device
+                </button>
                 <button class="btn btn-sm btn-secondary" onclick="openModal(${device.device_id})">
                     Add Register
                 </button>
@@ -188,7 +257,7 @@ function renderDevices(devices) {
                                                value="${scaledValue(reg.last_value, reg.scale, reg.offset)}"
                                                ${reg.writable ? '' : 'disabled'}>
                                         <button class="btn btn-sm btn-primary" 
-                                                onclick="writeRegister(${device.device_id}, ${reg.address})">
+                                               onclick="writeRegister(${device.device_id}, ${reg.address})">
                                             Write
                                         </button>
                                     </div>
@@ -197,7 +266,7 @@ function renderDevices(devices) {
                                 <td>${reg.unit || ''}</td>
                                 <td>
                                     <button class="btn btn-sm btn-secondary" 
-                                            onclick="deleteRegister(${device.device_id}, ${reg.address})">
+                                               onclick="deleteRegister(${device.device_id}, ${reg.address})">
                                         Delete
                                     </button>
                                 </td>
@@ -214,13 +283,14 @@ async function addDevice(event) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
-    
+
     const device = {
         device_id: parseInt(formData.get('device_id')),
         name: formData.get('name'),
         description: formData.get('description'),
         poll_interval_ms: parseInt(formData.get('poll_interval')),
         baudrate: parseInt(formData.get('baudrate')),
+        parity: parseInt(formData.get('parity')),
         enabled: formData.get('enabled') === 'on'
     };
 
@@ -353,7 +423,8 @@ async function writeRegister(deviceId, address) {
     }
 }
 
-function addPreset(presetType) {
+async function addPreset(presetType) {
+    console.log('addPreset called with:', presetType);
     let device, registers;
 
     if (presetType === 'eairmd') {
@@ -363,15 +434,25 @@ function addPreset(presetType) {
             description: 'Enervent eAirMD ventilation unit',
             poll_interval_ms: 5000,
             baudrate: 19200,
+            parity: 0,
             enabled: true
         };
         registers = [
-            { address: 1, type: 3, name: 'Room Temp TE20', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Room temperature sensor TE20' },
+            { address: 1, type: 3, name: 'Room Temp OP1', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Room temperature sensor TE20' },
+            { address: 2, type: 3, name: 'Room Temp OP2', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Room temperature sensor TE21' },
             { address: 6, type: 3, name: 'Fresh Air', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Fresh air temperature TE01' },
+            { address: 7, type: 3, name: 'Supply Air after HRC', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Supply air temperature after heat recovery TE05' },
             { address: 8, type: 3, name: 'Supply Air', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Supply air temperature TE10' },
-            { address: 13, type: 3, name: 'Exhaust Humidity', unit: '%RH', scale: 1, offset: 0, writable: false, description: 'Exhaust air relative humidity' },
-            { address: 44, type: 3, name: 'Mode Status', unit: '', scale: 1, offset: 0, writable: false, description: 'Current operating mode' },
-            { address: 135, type: 3, name: 'Setpoint', unit: '°C', scale: 0.1, offset: 0, writable: true, description: 'Supply air temperature setpoint' }
+            { address: 9, type: 3, name: 'Waste Air', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Waste air temperature TE32' },
+            { address: 10, type: 3, name: 'Extract Air', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Extract air temperature TE30' },
+            { address: 11, type: 3, name: 'Extract Air before HRC', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Extract air before heat recycler TE31' },
+            { address: 12, type: 3, name: 'Return Water', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Return water temperature TE45' },
+            { address: 16, type: 3, name: 'HP/MDX Supply Air', unit: '°C', scale: 0.1, offset: 0, writable: false, description: 'Supply air temperature after dehumidification TE07' },
+            { address: 3, type: 3, name: 'Supply Fan Speed', unit: '%', scale: 1, offset: 0, writable: false, description: 'Current effective TF fanspeed' },
+            { address: 4, type: 3, name: 'Exhaust Fan Speed', unit: '%', scale: 1, offset: 0, writable: false, description: 'Current effective PF fanspeed' },
+            { address: 13, type: 3, name: 'Exhaust Humidity', unit: '%RH', scale: 1, offset: 0, writable: false, description: 'Exhaust air relative humidity RH30' },
+            { address: 35, type: 3, name: '48h Humidity Avg', unit: '%RH', scale: 1, offset: 0, writable: false, description: 'Mean relative humidity with 48 hour history' },
+            { address: 10, type: 1, name: 'Manual Boost', unit: '', scale: 1, offset: 0, writable: true, description: 'Manual boosting on/off' }
         ];
     } else if (presetType === 'ewind') {
         device = {
@@ -508,6 +589,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const addRegisterForm = document.getElementById('add-register-form');
     if (addRegisterForm) {
         addRegisterForm.addEventListener('submit', addRegister);
+    }
+
+    const editDeviceForm = document.getElementById('edit-device-form');
+    if (editDeviceForm) {
+        editDeviceForm.addEventListener('submit', updateDevice);
     }
 
     if (document.getElementById('devices-list')) {

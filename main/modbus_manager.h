@@ -34,6 +34,7 @@ typedef struct {
     uint32_t timeout_ms;
     uint8_t retry_attempts;
     bool initialized;
+    uint8_t parity;
 } modbus_config_t;
 
 esp_err_t modbus_manager_init(modbus_config_t *config);

@@ -50,7 +50,7 @@ static void uart_init(void)
     uart_config_t uart_config = {
         .baud_rate = modbus_config.baudrate,
         .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
+        .parity = (modbus_config.parity == 1) ? UART_PARITY_EVEN : UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .source_clk = UART_SCLK_APB,
@@ -61,8 +61,9 @@ static void uart_init(void)
                                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 0, NULL, 0));
 
-    ESP_LOGI(TAG, "UART initialized: TX=%d, RX=%d, Baud=%d",
-              modbus_config.tx_pin, modbus_config.rx_pin, modbus_config.baudrate);
+    ESP_LOGI(TAG, "UART initialized: TX=%d, RX=%d, Baud=%d, Parity=%s",
+              modbus_config.tx_pin, modbus_config.rx_pin, modbus_config.baudrate,
+              (modbus_config.parity == 1) ? "Even" : "None");
 }
 
 static void gpio_init(void)

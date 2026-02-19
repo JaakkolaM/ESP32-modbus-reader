@@ -498,16 +498,24 @@
                             </select>
                         </div>
                         <div class="form-group">
+                            <label for="parity">Parity</label>
+                            <select id="parity" name="parity">
+                                <option value="0">None</option>
+                                <option value="1">Even</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label>
                                 <input type="checkbox" id="device-enabled" name="enabled" checked>
                                 Enable Device
                             </label>
                         </div>
-                    </div>
                     <button type="submit" class="btn btn-primary">Add Device</button>
                 </form>
             </section>
-
+            
             <section class="tabs">
                 <div class="tab active" onclick="showTab('devices')">Devices</div>
                 <div class="tab" onclick="showTab('presets')">Presets</div>
@@ -590,6 +598,63 @@
             </div>
         </div>
 
+        <div id="edit-device-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="section-title">Edit Device</h3>
+                    <span class="close" onclick="closeEditDeviceModal()">&times;</span>
+                </div>
+                <form id="edit-device-form">
+                    <input type="hidden" id="edit-device-original-id" name="original_device_id">
+                    <div class="form-group">
+                        <label for="edit-device-id">Device ID (1-247)</label>
+                        <input type="number" id="edit-device-id" name="device_id" required
+                               min="1" max="247">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-name">Device Name</label>
+                        <input type="text" id="edit-device-name" name="name" required
+                               maxlength="32">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-device-desc">Description</label>
+                        <input type="text" id="edit-device-desc" name="description"
+                               maxlength="64">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-poll-interval">Poll Interval (ms)</label>
+                        <input type="number" id="edit-poll-interval" name="poll_interval"
+                               min="1000" max="60000">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-baudrate">Baudrate</label>
+                            <select id="edit-baudrate" name="baudrate">
+                                <option value="9600">9600</option>
+                                <option value="19200">19200</option>
+                                <option value="38400">38400</option>
+                                <option value="115200">115200</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-parity">Parity</label>
+                            <select id="edit-parity" name="parity">
+                                <option value="0">None</option>
+                                <option value="1">Even</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="edit-device-enabled" name="enabled">
+                            Enable Device
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+        
         <footer>
             <p>ESP32 Modbus Reader</p>
         </footer>

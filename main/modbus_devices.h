@@ -18,6 +18,11 @@ typedef enum {
 } register_type_t;
 
 typedef enum {
+    PARITY_NONE = 0,
+    PARITY_EVEN = 1
+} parity_mode_t;
+
+typedef enum {
     DEVICE_STATUS_UNKNOWN = 0,
     DEVICE_STATUS_ONLINE = 1,
     DEVICE_STATUS_OFFLINE = 2,
@@ -51,6 +56,7 @@ typedef struct {
     uint16_t baudrate;
     uint8_t register_count;
     modbus_register_t registers[MAX_REGISTERS_PER_DEVICE];
+    parity_mode_t parity;
 } modbus_device_t;
 
 esp_err_t modbus_devices_init(void);

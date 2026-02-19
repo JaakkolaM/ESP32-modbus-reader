@@ -79,6 +79,12 @@ esp_err_t modbus_devices_save(void)
             ESP_LOGE(TAG, "Failed to save d%d_baud: %s", i, esp_err_to_name(err));
         }
 
+        snprintf(key, sizeof(key), "d%d_par", i);
+        err = nvs_set_u8(nvs_handle, key, devices[i].parity);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to save d%d_par: %s", i, esp_err_to_name(err));
+        }
+
         snprintf(key, sizeof(key), "d%d_rc", i);
         err = nvs_set_u8(nvs_handle, key, devices[i].register_count);
         if (err != ESP_OK) {
@@ -229,7 +235,15 @@ esp_err_t modbus_devices_load(void)
             devices[i].baudrate = 9600;
             load_success = false;
         }
-        
+
+        snprintf(key, sizeof(key), "d%d_par", i);
+        err = nvs_get_u8(nvs_handle, key, (uint8_t*)&devices[i].parity);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to read d%d_par: %s", i, esp_err_to_name(err));
+            devices[i].parity = PARITY_NONE;
+            load_success = false;
+        }
+
         snprintf(key, sizeof(key), "d%d_rc", i);
         err = nvs_get_u8(nvs_handle, key, &devices[i].register_count);
         if (err != ESP_OK) {
@@ -370,8 +384,23 @@ esp_err_t modbus_update_device(uint8_t device_id, const modbus_device_t *device)
 {
     for (uint8_t i = 0; i < device_count; i++) {
         if (devices[i].device_id == device_id) {
-            memcpy(&devices[i], device, sizeof(modbus_device_t));
-            ESP_LOGI(TAG, "Updated device: ID=%d", device_id);
+            uint8_t register_count = devices[i].register_count;
+            modbus_register_t registers[MAX_REGISTERS_PER_DEVICE];
+            memcpy(registers, devices[i].registers, sizeof(registers));
+            
+            devices[i].device_id = device->device_id;
+            strncpy(devices[i].name, device->name, sizeof(devices[i].name) - 1);
+            devices[i].name[sizeof(devices[i].name) - 1] = '\0';
+            strncpy(devices[i].description, device->description, sizeof(devices[i].description) - 1);
+            devices[i].description[sizeof(devices[i].description) - 1] = '\0';
+            devices[i].poll_interval_ms = device->poll_interval_ms;
+            devices[i].baudrate = device->baudrate;
+            devices[i].parity = device->parity;
+            devices[i].enabled = device->enabled;
+            devices[i].register_count = register_count;
+            memcpy(devices[i].registers, registers, sizeof(registers));
+            
+            ESP_LOGI(TAG, "Updated device: ID=%d, Name=%s, Registers preserved", device_id, device->name);
             return ESP_OK;
         }
     }

@@ -218,6 +218,7 @@ static esp_err_t api_get_devices_handler(httpd_req_t *req)
         cJSON_AddStringToObject(device, "description", devices[i].description);
         cJSON_AddNumberToObject(device, "poll_interval_ms", devices[i].poll_interval_ms);
         cJSON_AddNumberToObject(device, "baudrate", devices[i].baudrate);
+        cJSON_AddNumberToObject(device, "parity", devices[i].parity);
         cJSON_AddNumberToObject(device, "enabled", devices[i].enabled);
         cJSON_AddNumberToObject(device, "status", devices[i].status);
         cJSON_AddNumberToObject(device, "last_error", devices[i].last_error);
@@ -387,6 +388,150 @@ static esp_err_t api_delete_device_handler(httpd_req_t *req)
     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid request: device_id required");
     if (device_id_str) free(device_id_str);
     return ESP_FAIL;
+}
+
+static esp_err_t api_put_device_handler(httpd_req_t *req)
+{
+    char url_buf[100];
+    char *device_id_str = NULL;
+
+    if (httpd_req_get_url_query_str(req, url_buf, sizeof(url_buf)) == ESP_OK) {
+        device_id_str = extract_query_value(url_buf, "device_id");
+        if (device_id_str != NULL) {
+            uint8_t device_id = atoi(device_id_str);
+            if (device_id > 247) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device ID: must be 0-247");
+                free(device_id_str);
+                return ESP_FAIL;
+            }
+            free(device_id_str);
+
+            char buf[512];
+            int len = httpd_req_recv(req, buf, sizeof(buf));
+            if (len <= 0) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive data");
+                return ESP_FAIL;
+            }
+
+            buf[len] = '\0';
+
+            cJSON *root = cJSON_Parse(buf);
+            if (root == NULL) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+                return ESP_FAIL;
+            }
+
+            cJSON *new_id = cJSON_GetObjectItem(root, "device_id");
+            cJSON *name = cJSON_GetObjectItem(root, "name");
+            cJSON *desc = cJSON_GetObjectItem(root, "description");
+            cJSON *poll_interval = cJSON_GetObjectItem(root, "poll_interval_ms");
+            cJSON *baudrate = cJSON_GetObjectItem(root, "baudrate");
+            cJSON *parity = cJSON_GetObjectItem(root, "parity");
+            cJSON *enabled = cJSON_GetObjectItem(root, "enabled");
+
+            if (new_id && cJSON_IsNumber(new_id)) {
+                if (new_id->valueint < 1 || new_id->valueint > 247) {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid device_id: must be 1-247");
+                    cJSON_Delete(root);
+                    return ESP_FAIL;
+                }
+            } else {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing or invalid field: device_id");
+                cJSON_Delete(root);
+                return ESP_FAIL;
+            }
+
+            if (!name || !cJSON_IsString(name) || strlen(name->valuestring) == 0) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing or invalid field: name");
+                cJSON_Delete(root);
+                return ESP_FAIL;
+            }
+
+            if (poll_interval && cJSON_IsNumber(poll_interval)) {
+                if (poll_interval->valueint < 1000 || poll_interval->valueint > 60000) {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid poll_interval_ms: must be 1000-60000");
+                    cJSON_Delete(root);
+                    return ESP_FAIL;
+                }
+            }
+
+            if (baudrate && cJSON_IsNumber(baudrate)) {
+                if (baudrate->valueint != 9600 && baudrate->valueint != 19200 && 
+                    baudrate->valueint != 38400 && baudrate->valueint != 115200) {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid baudrate: must be 9600, 19200, 38400, or 115200");
+                    cJSON_Delete(root);
+                    return ESP_FAIL;
+                }
+            }
+
+            if (parity && cJSON_IsNumber(parity)) {
+                if (parity->valueint != 0 && parity->valueint != 1) {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parity: must be 0 (None) or 1 (Even)");
+                    cJSON_Delete(root);
+                    return ESP_FAIL;
+                }
+            }
+
+            if (enabled && (!cJSON_IsBool(enabled) && !cJSON_IsTrue(enabled) && !cJSON_IsFalse(enabled))) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing or invalid field: enabled");
+                cJSON_Delete(root);
+                return ESP_FAIL;
+            }
+
+            modbus_device_t device;
+            memset(&device, 0, sizeof(device));
+
+            if (new_id) {
+                device.device_id = new_id->valueint;
+            } else {
+                device.device_id = device_id;
+            }
+
+            strncpy(device.name, name->valuestring, sizeof(device.name) - 1);
+
+            if (desc && desc->valuestring) {
+                strncpy(device.description, desc->valuestring, sizeof(device.description) - 1);
+            }
+
+            if (poll_interval) {
+                device.poll_interval_ms = poll_interval->valueint;
+            }
+
+            if (baudrate) {
+                device.baudrate = baudrate->valueint;
+            }
+
+            if (parity) {
+                device.parity = parity->valueint;
+            }
+
+            if (enabled) {
+                device.enabled = enabled->type == cJSON_True;
+            }
+
+            device.register_count = 0;
+
+            esp_err_t err = modbus_update_device(device_id, &device);
+            if (err == ESP_OK) {
+                modbus_devices_save();
+                httpd_resp_set_type(req, "application/json");
+                httpd_resp_send(req, "{\"status\":\"ok\"}", 15);
+            } else if (err == ESP_ERR_NOT_FOUND) {
+                httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Device not found");
+            } else {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to update device");
+            }
+
+            cJSON_Delete(root);
+            return err;
+        } else {
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid request: device_id required");
+            return ESP_FAIL;
+        }
+    } else {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid request: device_id required");
+        return ESP_FAIL;
+    }
 }
 
 static esp_err_t api_post_register_handler(httpd_req_t *req)
@@ -922,6 +1067,12 @@ static httpd_uri_t uri_handlers[] = {
         .uri = "/api/modbus/devices",
         .method = HTTP_GET,
         .handler = api_get_devices_handler,
+        .user_ctx = NULL
+    },
+    {
+        .uri = "/api/modbus/devices",
+        .method = HTTP_PUT,
+        .handler = api_put_device_handler,
         .user_ctx = NULL
     },
     {
